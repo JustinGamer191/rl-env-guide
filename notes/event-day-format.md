@@ -41,3 +41,5 @@ Condensed guide: [CODING-GUIDE.md](CODING-GUIDE.md). Key points:
 - A Frist UserPromptSubmit hook can reject all prompts with "Workspace is saving or activity is uncertain"; don't force-close workspace tabs mid-save, keep one viewer per workspace, escalate to staff if it persists.
 - Visual-bug tasks: the App tab preview needed relative redirects and SameSite=None cookies to work through the gateway; screenshots are pasted into the Claude terminal (Files tab is read-only). Local browsers are blocked by an operator hook; TaskCheck runs browser tests in its own Chromium.
 - Codex in workspaces returned 503; probe with Opus only.
+- Visual/browser-lane tasks are risky: our Photopea task passed every local check (replay base 0/16, ref 16/16) yet TaskCheck's lanes graded inverted twice; the line image had no Chromium. Prefer server-side shapes (concurrency, authz, resilience) whose two-sided check you can run locally before submitting.
+- First Opus probe on a concurrency task solved 3/3 in ~13 min because the ticket hinted the mechanism. Harden by stating outcomes only and widening the invariant across every write path, plus a deadlock-order case.
