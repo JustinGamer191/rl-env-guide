@@ -35,3 +35,4 @@ Condensed guide: [CODING-GUIDE.md](CODING-GUIDE.md). Key points:
 - Staff said TaskCheck's top two models are Opus 5.5 and GPT-6 Astra.
 - Staff: the target is the top models passing only 1 of 3 attempts ("frontier hard").
 - Staff: a task that is easy to reward-hack is rejected (TaskCheck has a model try to pass the tests without building the feature).
+- The workspace Claude Code is capped at 200k context. Keep evidence reads narrow (grep or python extracts), push big reads into subagents, and keep a notes file in the workspace so compaction doesn't lose the plan.
