@@ -33,3 +33,4 @@ Condensed guide: [CODING-GUIDE.md](CODING-GUIDE.md). Key points:
 - Recon of candidate sites before kickoff was wasted: the site list only appeared in the portal. Next time, wait for the portal.
 - Plan for cloud workspaces: the orchestrator's job becomes writing prompts for the workspace's Claude Code, not running local worktrees.
 - Staff said TaskCheck's top two models are Opus 5.5 and "Astra".
+- Staff: the target is the top models passing only 1 of 3 attempts ("frontier hard").
