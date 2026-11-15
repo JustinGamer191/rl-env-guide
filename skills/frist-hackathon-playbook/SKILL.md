@@ -82,6 +82,17 @@ Separately, the coding pipeline's **role firewall** (test author never sees the 
 
 Rehearsal (Nov 14 night): on small clones (about 4,000 lines), Opus 5.5 and Fable 5.2 solved every coding and CU task we built, including two linked causes, a cause in a shared SQL helper used by 4 readers, removed logic with about 15 rules, and 20-check two-app tasks with layered corrections. Solvers read the whole backend first and grep every ticket noun. On a small clone, a solve is the normal result, not a defect.
 
+Overnight Nov 15 we then tried every hardening lever we could build fairly, each screened with headless Opus 5.5. None produced a failure:
+
+| Lever | Result |
+|---|---|
+| 160k-line app (Karakeep), 3 quiet bugs (runtime pagination, 4-file fallback, shared recursion) | solved 1.8 to 3.7 min |
+| Removed 8-step dependent chain in the API layer | solved 4.2 min, 561/561 tests |
+| Removed 7-step client-state chain (URL state, history, bulk edit + undo, saved views), browser-only checks | solved 6.8 min, 40/40 journeys |
+| CU tasks with screenshot-only control (Frist-like pixels and mouse) | 6/6 valid runs solved, 3 to 6 min |
+
+Why: with fair tickets (every checked rule stated), Opus turns the rule list into code in one pass, then verifies with fast tests or one scripted Playwright walk. Frist's lower solve rates (Opus 20-min median, 36 to 59% on CU) most likely come from their own large generated clones and their harness, not from tricks we can plant. So at the event: build tasks on Frist's actual clones (they bring their own size and mess), keep them fair and well tested, ship fast, and let Frist's review tell us about difficulty.
+
 So difficulty is a question for staff, not a gate we set:
 - **Screen every candidate with one Opus run** (coding: frist-coding-task "Pipeline" step 2; CU: frist-computer-use-task step 7) and write the result on BOARD.md.
 - **Submit correct, well-tested tasks even if Opus solves them.** A held task is worth 0. Calibrate from Frist's first review and staff answers.
