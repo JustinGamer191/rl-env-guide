@@ -64,3 +64,14 @@ Then reply with one short paragraph: what you did and which report you made.
 - Python Playwright wanted `chromium_headless_shell-1223` but `~/Library/Caches/ms-playwright` had `-1243`; pass `executable_path=` to the installed headless shell instead of downloading.
 - `bun` is a shell function wrapper here; call `~/.bun/bin/bun` from scripts.
 - In the clone, the left nav is also an `<aside>`; scope drawer selectors (`aside.drawer-in`). Picker options contain avatar initials, so match the label span (`span:text-is('You')`), not the whole button text.
+
+## Dry-run notes (Nov 15, Tidewell POS + Quillmail world)
+
+A full CU task (cu-1, 14 checks, supplier emails with corrections and a look-alike product) passed the checklist: oracle 1.0 x3, alt path and API path 1.0, null, answer-only, change-everything, wrong-entity, partial, collateral and six extra traps all 0 for state reasons. Friction to avoid next time:
+- examples/hard World is Quillstack-specific (slot ports 6100+10*slot, /health and /app readiness URLs). For another app, pass explicit ports and that app's real readiness checks (e.g. a seed line in dev.log, an API route, the login page).
+- Quillmail's server.mjs joins MAIL_SEED to its own root, so pass a path relative to world/quillmail, not an absolute one.
+- Reuse the small core of examples/hard/tasks.py (plan, expected = seed + plan, full diff, apply via API, the adversary table), not the whole 900-line file.
+- Keep report.py at the task root; the probe copies it into each run dir.
+- Normalize clone-specific viewing side effects: edit forms that save null as "", opening a mail setting `read`. Add "open the edit form and save without changes" as an alt-path check that must score 1.
+- The world's own seed file can be reachable over Vite's /@fs (200). That is a world leak, not a task leak; keep answers out of it.
+- The harness blocks `sleep N; cmd` chains; wait with Monitor or until-loops.
