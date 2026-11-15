@@ -32,15 +32,15 @@ Solver probes always get this treatment, so a "solved" verdict can never come fr
 You are the DISCOVERY + BUG-SITE CATALOG agent. Original app: <path> (READ ONLY; run build/test/app only in a
 disposable copy: `cp -cR <orig> <scratch>/app`, because builds write dist/ and tsbuildinfo).
 1. Boot it first. If it does not start or a journey is broken, list that (upstream apps and clones often ship broken).
-2. Add a "Coding tasks" section to ~/Hackathons-local/frist/DISCOVERY.md (it already has the ticket-phase
+2. Add a "Coding tasks" section to ~/Hackathons-local/frist/<clone>/DISCOVERY.md (it already has the ticket-phase
    discovery; do not repeat it) with what task authoring needs: lint scope (SOURCE dirs only), hard-coded
    ports, how state persists (is the DB written to disk? is there seed data?), clock sources and
    timestamp resolution, default ORDER BY ties, node_modules layout (symlinks), whether the ORM/schema file is used.
 3. Walk every route on the original; list journeys that are already broken and README claims not in code.
-4. Write CATALOG.md: 15 to 25 bug sites from winning-coding-tasks.md "Bug-site selection", one row each: id, journey
+4. Write <ws>/CATALOG.md (next to DISCOVERY.md): 15 to 25 bug sites from winning-coding-tasks.md "Bug-site selection", one row each: id, journey
    (route + clicks), decision point type, file path UI -> API -> DB, Y/~/N per check (Quiet and Isolated are
    predictions: name the existing tests and journeys that read the same code), feature area (= route or router file),
-   the Frist category it fits (from DISCOVERY.md's category list),
+   the Frist category it fits (from DISCOVERY.md's category list; if none is listed yet, tag BUG or FEAT-RM and say so),
    and "what the ticket must state for one-right-answer". Give the decision point, not a suggested mutation.
    Only sites whose journey works on the original. Rank all-Y first, then cross-layer depth; mark a top 5 in 5 areas.
 Report paths, top 5 rows, minutes, SKILL FRICTION.
@@ -51,13 +51,17 @@ Report paths, top 5 rows, minutes, SKILL FRICTION.
 ```
 You are the HARNESS agent. Original: <path> (READ ONLY; experiment in clones only). Build <ws>/harness/ so any
 candidate repo can be graded with: bash harness/run.sh <repo-dir> <tests-subdir>   (exit = test result, 3 = harness error)
+- Exit codes: a candidate that fails to boot or seed, a skipped test, or zero tests run is exit 1 (a FAIL, so a crashing
+  wrong fix or mutant is killed); only harness, browser, port or lock problems are exit 3.
 - Ports from MB_SLOT: backend 4100+10*slot, frontend 5200+10*slot; a per-slot lock; fail fast if a port is taken.
 - Fresh DB per run; servers start from the candidate's own code in their own process group; readiness checks; trap +
   watchdog so servers die even if run.sh is killed. Never edit the candidate repo (frontend port/proxy via a config
   kept in harness/ that loads the repo's own vite config; symlink node_modules next to it; a separate cacheDir; one
   warm-up page load in global setup so the optimizer does not reload mid-test).
 - One runner: @playwright/test, 1 worker, 0 retries, TZ=UTC, its `request` fixture for API calls. Browsers: install the
-  build matching the repo's Playwright into a local PLAYWRIGHT_BROWSERS_PATH, never globally.
+  build matching the repo's Playwright into a local PLAYWRIGHT_BROWSERS_PATH, never globally. If the repo has no
+  Playwright or the network is off, vendor the playwright package whose browser revision matches a browser already in
+  ~/Library/Caches/ms-playwright and point PLAYWRIGHT_BROWSERS_PATH at a clone of it; never download.
 - Clock: anchored (fixed start + elapsed), shared by backend and browser; never frozen (a frozen clock breaks every
   ORDER BY created_at and every relative time).
 - Helpers tests import from ../harness/index.mjs: register/login, create records, seed via API, log the browser in.
@@ -85,8 +89,8 @@ Your site: <catalog row>. Ports: <backend>/<frontend>, harness MB_SLOT=<k>. Stop
    user-visible on the journey, show on many records, need tracing across 2+ files, keep typecheck, existing tests and
    lint of the touched files (compare with the baseline warnings) green, and leave neighbouring journeys working.
    No comments, TODOs, flags, renamed identifiers or leftover build output (delete dist/ etc.).
-2. Outputs: `git add -A && git commit -qm broken && git diff HEAD HEAD~1 > <S>/out/solution.patch` (broken -> original,
-   a/ b/ paths); check it applies with `git apply` in a copy of out/repo. `rsync -a --exclude .git work/ <S>/out/repo/`.
+2. Outputs: `git add -A && git commit -qm broken && { echo "<CNRY-BUG-...> oracle: broken -> original"; echo; git diff HEAD HEAD~1; } > <S>/out/solution.patch`
+   (broken -> original, a/ b/ paths; the canary preamble before the first `diff --git` is ignored by git apply); check it applies with `git apply` in a copy of out/repo. `rsync -a --exclude .git work/ <S>/out/repo/`.
 3. ticket.md (Frist template; replace the single dev-server line with a "Running the app" section: servers, ports,
    reset/seed, test command). Symptom not cause; expected values from the ORIGINAL, actual values from the broken repo;
    a generalization sentence; every rule a held-out input could test; name adjacent original quirks as out of scope
@@ -98,7 +102,8 @@ Your site: <catalog row>. Ports: <backend>/<frontend>, harness MB_SLOT=<k>. Stop
    surface tests may use (UI / API / DB) so valid fixes are not rejected for unobservable differences; nearby original
    quirks tests must not assert.
 6. BUG_NOTES.md (orchestrator only), containing the canary <CNRY-BUG-...>.
-7. screen_check.sh (orchestrator only): `bash screen_check.sh <candidate-repo> <port-base>` copies the candidate, boots
+7. screen_check.sh (orchestrator only): `bash screen_check.sh <candidate-repo> <port-base>` (frontend = port-base,
+   backend = port-base+1; macOS has no `timeout`, bound it with Python `signal.alarm` or a watchdog) copies the candidate, boots
    it, checks EVERY planted cause through the API (Playwright for UI-only causes), prints `CAUSE n: FIXED|BROKEN` and
    `SCREEN: PASS|FAIL` in under 3 minutes. Compare per-record facts, never array order. Prove FAIL on out/repo and PASS
    on out/repo + solution.patch. The orchestrator runs one Opus solver against it, in parallel with the test author;
@@ -151,7 +156,7 @@ When the checker sends survivors, add the smallest check that kills each, from t
 
 ```
 You are the WRONG-FIX AUTHOR: a hurried but honest engineer, not a cheater. Sandbox <S>: ticket.md, repo/ (broken,
-one-commit baseline; produce patches with `git diff`; no git log/show/stash). No other files from this task; web docs
+one-commit baseline; edit in `git clone` copies of repo/ and produce patches with `git diff`; leave repo/ untouched; no git log/show/stash). No other files from this task; web docs
 are fine; calls are audited. Write patches to <S>/wrong_fixes/ and <S>/alt_fixes/.
 Ports <p> (stop only what you started, by PID or port; never pkill or killall by name); verify through the API unless the category is UI-only (then use a vite config outside the repo with a
 node_modules symlink next to it).

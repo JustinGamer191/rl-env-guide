@@ -31,7 +31,7 @@ From Frist's blog ("Green Tests, Broken Apps", Oct 23 2026) and sample runs at h
 
 ## Task dir layout (what the scripts expect)
 
-`~/Hackathons-local/frist/tasks/<task-id>/`:
+`~/Hackathons-local/frist/<clone>/tasks/<task-id>/`:
 - `repo/`: broken repo exactly as the solver sees it (no `.git`, or one squashed commit; no hidden tests, notes, backups).
 - `ticket.md`: Frist-template ticket.
 - `solution.patch`: oracle, broken -> original (`a/` `b/` paths, applies with `git apply` in `repo/`).
@@ -39,7 +39,7 @@ From Frist's blog ("Green Tests, Broken Apps", Oct 23 2026) and sample runs at h
 - `wrong_fixes/*.patch`: plausible honest wrong fixes (must all fail). `alt_fixes/*.patch`: other valid fixes (must all pass).
 - `hacks/*.patch`: cheating attempts (must all fail).
 - `equivalent_mutants.txt`, `mutation_report.json`: checker outputs.
-- Private, never shipped: `BUG_NOTES.md`, `screen_check.sh`, `heldout_hint.md` (keep them in `~/Hackathons-local/frist/private/<task-id>/`).
+- Private, never shipped: `BUG_NOTES.md`, `screen_check.sh`, `heldout_hint.md` (keep them in `~/Hackathons-local/frist/<clone>/private/<task-id>/`).
 
 Rename to Frist's layout at packaging time.
 
@@ -49,7 +49,7 @@ Once per clone, as soon as discovery is done (can overlap the last tickets):
 - **0a Catalog agent** (role-prompts 0a): 15 to 25 scored bug sites across feature areas, each tagged with a Frist category.
 - **0b Harness agent** (role-prompts 0b), in parallel: one shared journey runner and fact recorder with `MB_SLOT` ports. Every task reuses it; this is the biggest throughput win.
 
-Per task, one sandbox per role under `~/Hackathons-local/frist/roles/<task-id>/<role>/` holding only that role's inputs (table in role-prompts "Isolation"). Give parallel tasks different feature areas and Frist categories.
+Per task, one sandbox per role under `~/Hackathons-local/frist/<clone>/roles/<task-id>/<role>/` holding only that role's inputs (table in role-prompts "Isolation"). Give parallel tasks different feature areas and Frist categories.
 1. **Bug author** (role-prompts 1): plants one bug or logic-only feature removal; writes `repo/`, `solution.patch`, `ticket.md`, `heldout_hint.md`, `BUG_NOTES.md`, `screen_check.sh`.
 2. **Opus screen** (about 3 minutes; record it, it does not block): one headless Opus solver on ticket + broken repo only, graded by `screen_check.sh`. Run it in parallel with step 3. Command, from a solver sandbox holding only `ticket.md` and `repo/` (prompt = role-prompts 5):
    ```bash
@@ -59,7 +59,7 @@ Per task, one sandbox per role under `~/Hackathons-local/frist/roles/<task-id>/<
    bash <private>/screen_check.sh <solver sandbox>/repo <port-base>
    ```
    Transcript: `~/.claude/projects/<sandbox path with every non-alphanumeric char replaced by ->/<session_id from screen.json>.jsonl`; audit it (Isolation below). Write "screen: solved in N min" or "screen: failed (why)" on BOARD.md. Only if staff have said difficulty matters: wait for the screen and harden before step 3 (playbook "Difficulty gate").
-3. In parallel: **test author** (role-prompts 2, ticket + heldout_hint + original only), **wrong-fix author** (role-prompts 3, ticket + broken repo only), **hack author** (role-prompts 3b).
+3. In parallel: **test author** (role-prompts 2, ticket + heldout_hint + original only), **wrong-fix author** (role-prompts 3, ticket + broken repo only), **hack author** (role-prompts 3b). An agent writing cheat patches may be refused by a safety classifier (it was, twice, in rehearsal); if so, do not work around it: rely on verify_task.sh's built-in AUTO_HACKS and the reviewer, and set MIN_HACKS=0 for that task.
 4. **Assemble** the task dir (layout above). Move the solver's patch into the alt fixes for grading (`alt_plus_solver/`).
 5. **Checker** (role-prompts 4): `mutation_bar.py`, then `verify_task.sh`, then the isolation results. Survivors go back to the test author (step 3) until `MUTATION BAR: PASS` and `VERIFY: PASS`.
 6. **Reviewer** (playbook "Reviewer subagent prompt") on this skill's checklist. Only PASS is submitted.

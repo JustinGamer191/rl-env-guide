@@ -47,10 +47,10 @@ Read every rejection immediately; a pattern in rejections changes the prompts fo
 
 ## Workspace and discovery
 
-The workspace is `~/Hackathons-local/frist/`: every repo, worktree, task dir, `DISCOVERY.md` and `BOARD.md` live there. Never `~/Documents` or `~/Desktop` (prep.md's `~/Documents/Hackathons/Frist/work/` is superseded): those sync to iCloud, Justin's shell turns `node_modules` there into a `.nosync` symlink, which broke Vite (blank page) and slipped past `node_modules/` gitignore rules in rehearsal. Start Claude Code with the clone repo as cwd if you want `isolation: "worktree"` to work; otherwise create worktrees by hand (frist-clone-tickets section 3).
+The workspace root is `~/Hackathons-local/frist/`, with one subfolder per clone (`frist/<clone>/` holds that clone's repo, wt/, tasks/, private/, DISCOVERY.md and BOARD.md) so a second clone never collides with the first. Make sure Spotlight skips it: `touch ~/Hackathons-local/.metadata_never_index` and add the folder in System Settings > Spotlight > Privacy; indexing node_modules copies pushed load to 12 to 19 in the dry run. every repo, worktree, task dir, `DISCOVERY.md` and `BOARD.md` live there. Never `~/Documents` or `~/Desktop` (prep.md's `~/Documents/Hackathons/Frist/work/` is superseded): those sync to iCloud, Justin's shell turns `node_modules` there into a `.nosync` symlink, which broke Vite (blank page) and slipped past `node_modules/` gitignore rules in rehearsal. Start Claude Code with the clone repo as cwd if you want `isolation: "worktree"` to work; otherwise create worktrees by hand (frist-clone-tickets section 3).
 
-Run one discovery subagent (or inline if tiny) that writes `~/Hackathons-local/frist/DISCOVERY.md`:
-- Everything in frist-clone-tickets section 1 (commands, baseline, tickets, hot files, worktree bootstrap, offline Playwright, env quirks).
+Run one discovery subagent (or inline if tiny) that writes `~/Hackathons-local/frist/<clone>/DISCOVERY.md`:
+- Everything in frist-clone-tickets section 1 (commands, baseline, tickets, hot files, worktree bootstrap, offline Playwright, env quirks), plus one clean install in a scratch clone (no copied node_modules) to catch setup gaps such as a skipped `prisma generate`.
 - Frist's task template(s): directory layout, required files, schema fields, predefined coding categories, any validator, one example copied verbatim.
 - World composition for CU tasks if one is provided (apps, ports, seed and reset, verifier API).
 - Staff answers, as they come in.
@@ -110,7 +110,7 @@ Statuses: IDEA, RUNNING, DONE, CHECKING, MERGED, SCREENED, REVIEW, PASS, FAIL, S
 
 ```
 You are an adversarial reviewer for a Frist RL task. You did not write it and you want to find reasons it would be REJECTED. Do not fix anything. Use any resource that helps.
-Task path: <path>. Task type: <coding | computer-use>. Frist template/rules: <~/Hackathons-local/frist/DISCOVERY.md section>.
+Task path: <path>. Task type: <coding | computer-use>. Frist template/rules: <~/Hackathons-local/frist/<clone>/DISCOVERY.md section>.
 Run every item of the "Pre-submit checklist" in ~/.claude/skills/<frist-coding-task | frist-computer-use-task>/SKILL.md. Execute each check yourself (run the oracle 3 times, the null attempt, the hacks or adversaries, an alternative valid fix or path; grep the prompt and every agent-visible file for leaked answers, diffs, test names or golden values). Check it matches Frist's template exactly and the problem statement is clear to someone who has never seen the code. Difficulty is recorded, not a reason to fail: report the screen result as a RISK only.
 Return exactly:
 VERDICT: PASS or FAIL

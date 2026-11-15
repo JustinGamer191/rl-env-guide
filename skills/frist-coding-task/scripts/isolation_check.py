@@ -34,7 +34,9 @@ import sys
 
 PATH_RE = re.compile(r"(?:~|/)[\w.@+\-~]*(?:/[\w.@+\-*]*)*")
 HISTORY_RE = re.compile(r"\bgit\b[^|;&\n]*\b(log|show|reflog|blame|stash|cat-file|rev-list|fsck|whatchanged)\b")
-UPSTREAM_RE = re.compile(r"\bgh\s+(repo\s+clone|api\s+repos|search\s+code)|\bgit\s+clone\b|github\.com/|raw\.githubusercontent")
+# A `git clone` of a local sandbox path (a throwaway copy of repo/) is fine; only remote sources count as upstream.
+# Local paths still go through the forbidden-path check below.
+UPSTREAM_RE = re.compile(r"\bgh\s+(repo\s+clone|api\s+repos|search\s+code)|\bgit\s+clone\b[^|;&\n]*(https?://|git@|ssh://|git://)|github\.com/|raw\.githubusercontent")
 
 
 def norm(p):

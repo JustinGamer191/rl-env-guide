@@ -109,9 +109,9 @@ Frist's FristWorld agent acts from pixels: one screenshot per turn, `mouse_click
 ## Worker prompt template (paste and fill)
 
 ```
-You are a worker authoring ONE computer-use task (or one template with N variants) for the Frist hackathon. Read ~/Hackathons-local/frist/DISCOVERY.md first (world composition, ports, seed and reset, verifier API, Frist's task template).
+You are a worker authoring ONE computer-use task (or one template with N variants) for the Frist hackathon. Read ~/Hackathons-local/frist/<clone>/DISCOVERY.md first (world composition, ports, seed and reset, verifier API, Frist's task template).
 Then read ~/.claude/skills/frist-computer-use-task/SKILL.md and follow "Building one task" exactly.
-World: <how to start it, URLs>. Your dir: ~/Hackathons-local/frist/cu-tasks/<task-id>/ (do not edit the clones or the shared seed; if the world needs a reset script or seed change, stop and report NEEDS-WORLD).
+World: <how to start it, URLs>. Your dir: ~/Hackathons-local/frist/<clone>/cu-tasks/<task-id>/ (do not edit the clones or the shared seed; if the world needs a reset script or seed change, stop and report NEEDS-WORLD).
 Apps to span: <app A> -> <app B>. Idea: <one line>. Variants wanted: <N or 0>.
 Other workers own: <their ideas>; do not overlap. If you run the world yourself, use ports <ports> so you do not collide.
 

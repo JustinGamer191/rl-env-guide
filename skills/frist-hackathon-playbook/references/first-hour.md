@@ -15,7 +15,7 @@ Follow in order. Each step names the skill section or script to use. Workspace i
    claude --version
    ```
    `bun` is a shell function wrapper on this Mac; scripts call `~/.bun/bin/bun`. Python Playwright needs `executable_path=` pointing at the cached headless shell (`frist-computer-use-task/references/rehearsal-recipe.md` section 6).
-3. Create `~/Hackathons-local/frist/DISCOVERY.md` with headings: Event links, Staff answers, Clone 1, Task template, World. Create `BOARD.md` from the playbook "BOARD.md format".
+3. Create `~/Hackathons-local/frist/<clone>/DISCOVERY.md` with headings: Event links, Staff answers, Clone 1, Task template, World. Create `BOARD.md` from the playbook "BOARD.md format".
 
 ## 9:15 Staff questions (before kickoff fills up)
 
@@ -39,7 +39,7 @@ Sung said "all the tips will be included in the session". Take notes on acceptan
 1. Claim the first clone through Frist's process. If there is a choice, prefer the one with the most small, independent tickets and a working baseline.
 2. Clone into the workspace, never `~/Documents` or `~/Desktop`:
    ```bash
-   cd ~/Hackathons-local/frist && git clone <url> <clone1>      # or gh repo clone, or unpack the provided archive
+   mkdir -p ~/Hackathons-local/frist/<clone1> && cd ~/Hackathons-local/frist/<clone1> && git clone <url> repo   # or gh repo clone, or unpack the provided archive
    cd <clone1> && [ -d .git ] || { git init -q && git add -A && git commit -qm base; }
    ```
 3. The orchestrator session runs from `~/Agent`, so `isolation: "worktree"` will not work: create worktrees by hand (`frist-clone-tickets` section 3).
@@ -75,7 +75,7 @@ As soon as DISCOVERY.md has the task template and categories, launch (they count
 
 Goal: learn early how hard our tasks are on Frist's clone, before the afternoon pipeline.
 1. Pick the catalog's top site in a feature area no open ticket touches.
-2. Bug author (`role-prompts.md` 1) on clone 1 main as of now, in `~/Hackathons-local/frist/roles/ct-1/bug/`.
+2. Bug author (`role-prompts.md` 1) on clone 1 main as of now, in `~/Hackathons-local/frist/<clone>/roles/ct-1/bug/`.
 3. Opus screen: `frist-coding-task/SKILL.md` "Pipeline" step 2 (headless `claude -p --model claude-opus-5-5` in a solver sandbox, `screen_check.sh`, then `scripts/isolation_check.py --no-network` on its transcript).
 4. Record "screen: ..." on BOARD.md. It does not block anything.
 5. If staff said tasks need a finished clone (question 6), this task is rebuilt on final main when clone 1 is complete: re-apply the bug author's change (`git apply -R solution.patch` on a copy of final main), rerun `screen_check.sh`, then continue the pipeline.

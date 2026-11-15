@@ -11,26 +11,27 @@ The main session orchestrates (frist-hackathon-playbook); workers implement; a s
 
 ## 1. Discover (orchestrator, 10 to 15 minutes, once per clone)
 
-Clone into `~/Hackathons-local/frist/<repo>` (never `~/Documents` or `~/Desktop`). If the clone has no `.git`, `git init && git add -A && git commit -qm base` first. If git complains about the Xcode license, prefix `DEVELOPER_DIR=/Library/Developer/CommandLineTools`.
+Clone into `~/Hackathons-local/frist/<clone>/<repo>` (never `~/Documents` or `~/Desktop`). If the clone has no `.git`, `git init && git add -A && git commit -qm base` first. If git complains about the Xcode license, prefix `DEVELOPER_DIR=/Library/Developer/CommandLineTools`.
 
-Do not guess the stack. Read README and docs, the ticket source (file, `gh issue list`, portal, `TODO(TICKET-` comments), manifests, CI config, tests, docker compose, seed scripts. Then actually install, start the app, run the full suite, lint and build. Record in `~/Hackathons-local/frist/DISCOVERY.md`:
+Do not guess the stack. Read README and docs, the ticket source (file, `gh issue list`, portal, `TODO(TICKET-` comments), manifests, CI config, tests, docker compose, seed scripts. Then actually install, start the app, run the full suite, lint and build. Record in `~/Hackathons-local/frist/<clone>/DISCOVERY.md`:
 - Exact commands: install, dev server (and ports, and the env vars that change them), test (whole suite and one test), lint, typecheck, build.
-- Baseline: which tests pass, which fail, which fail because their ticket is unfinished. That list is the progress meter.
-- Tickets: ID, title, acceptance criteria, how "done" is judged (tests, checklist, staff demo).
+- Baseline: which tests pass, which fail, which fail because their ticket is unfinished. That list is the progress meter. If the repo has no suite or linter (the Nov 15 dry-run clone had neither), write N/A, use typecheck, build and `node --check` on backend `.mjs` files instead, and make a headless probe of each ticket's acceptance criteria the progress meter.
+- Tickets: ID, title, acceptance criteria, how "done" is judged (tests, checklist, staff demo), and dependencies between tickets (one ticket's criterion needing another's message or route).
 - Shared hot files: lockfiles, migrations, route tables, schema, nav, the domain context (`BookingContext`, `WorkspaceContext`, ...), `useWindowAPIs`, the backend route file, the big shared component.
 - Worktree bootstrap: the one command that makes a fresh worktree runnable (`cp -cR <main>/node_modules <wt>/` is an instant APFS clone; never a networked install per worker). Confirm with `git check-ignore -v node_modules` that it is ignored even as a symlink (`node_modules/` with a slash does NOT match a symlink, so `git add -A` would commit it; add a bare `node_modules` line).
-- Offline browser tooling: which Playwright (Python or Node) imports and which Chromium binary it launches (`npx playwright` downloads and fails offline). Write the working launch line.
+- Offline browser tooling: which Playwright (Python or Node) imports and which Chromium binary it launches (`npx playwright` downloads and fails offline). Expect a revision mismatch (Python playwright 1.60 wants a revision that is not cached): pass `executable_path=` pointing at the newest `~/Library/Caches/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-mac-arm64/chrome-headless-shell`, never run `playwright install`. Write the working launch line.
+- Own-file layout: write the section 3 block into DISCOVERY.md with this repo's real file names AND its real shapes (where the context's actions object is, whether the window-API file needs a line at all, how backend routes are registered), so every worker pastes the same concrete recipe.
 - Env quirks (seed races, slow first load, overlays that eat clicks).
 
 If install or the baseline fails for reasons unrelated to tickets, fix that first in one worker, merge, then fan out.
 
 ## 2. Triage (orchestrator)
 
-On BOARD.md per ticket: size (S under 15 min, M under 45, L more), likely files, dependencies, hot-file flag. Order: tickets others depend on, then S, then M, then L. Group tickets that edit the same component into one worker. A ticket needing a migration or new dependency goes to one serialized integrator worker. Apply the generator-bug fix order from `references/frist-clone-conventions.md` (blocking modal first).
+On BOARD.md per ticket: size (S under 15 min, M under 45, L more), likely files, dependencies, hot-file flag. Order: tickets others depend on, then S, then M, then L. Do not group same-component tickets into one worker: with the own-file layout, parallel edits merged with 0 conflicts in the dry run, so grouping only costs parallelism. A ticket needing a migration or new dependency goes to one serialized integrator worker. Apply the generator-bug fix order from `references/frist-clone-conventions.md` (blocking modal first).
 
 ## 3. Dispatch (orchestrator)
 
-Launch 3 to 5 workers at once (playbook "Machine limits": load under 12, `nice -n 15`, drop to 2 if load climbs), one ticket or same-file group each, with the worker prompt below. `isolation: "worktree"` only works when the session's cwd is the clone repo; otherwise create worktrees yourself (`git worktree add ../wt/<ID> -b <ID>` from the repo, so they land in `~/Hackathons-local/frist/wt/`), run the bootstrap command, and put the absolute path in the prompt. Each worker gets its own port pair (3101/3102, 3111/3112, ...).
+Launch 3 to 5 workers at once (playbook "Machine limits": load under 12, `nice -n 15`, drop to 2 if load climbs), one ticket or same-file group each, with the worker prompt below. `isolation: "worktree"` only works when the session's cwd is the clone repo; otherwise create worktrees yourself (`git worktree add ../wt/<ID> -b <ID>` from the repo, so they land in `<repo parent>/wt/<ID>`, which is `~/Hackathons-local/frist/<clone>/wt/` when the repo sits directly under `frist/`), run the bootstrap command, and put the absolute path in the prompt. Each worker gets its own port pair (3101/3102, 3111/3112, ...).
 
 **Own-file layout.** Paste this block into every worker prompt where marked, with the repo's real file names filled in:
 ```
@@ -39,15 +40,16 @@ Merge rules (other workers edit the same shared files in parallel; follow exactl
 - In <context file> add exactly two lines: one import after the last import, and `...use<ID>({ ... }),` as the LAST entry of the returned object. Change nothing else there; if an existing action must behave differently, do it in your own file.
 - In <window-API file> add at most one line at the end of `actions` and one at the end of getState().
 - New backend routes go in a NEW file backend/routes/<ID>.mjs exporting `register(route, deps)`; in <server file> add one import line and one call line right after the last route(...) call. Schema: only new lines, or a new model at the end.
-- New UI goes in a NEW component file; in the existing component add only its import and render it in place of the dead control.
+- New UI goes in a NEW component file; in the existing component add only its import and render it in place of the dead control (deleting the dead control's JSX and any state only it used).
+- Bug fixes inside existing code (wrong text, wrong condition, wrong date math, a mislabeled or half-wired control) are edited IN PLACE in whatever file holds them, hot files included, changing only the lines the fix needs.
 ```
 Every merge still conflicts textually (everyone appends at the same spot), but the hunks are insert/insert with an empty base, which the perl line in section 4 resolves. Never use a `merge=union` gitattribute.
 
 ## 4. Check, then merge at once (orchestrator)
 
 A worker's DONE is a claim, not evidence. For each DONE:
-1. **Acceptance checker.** Launch a fresh checker subagent (prompt below) that gets only the ticket text, the branch or worktree path and a port pair: never the worker's report or diff. Run checkers one browser at a time. Any FAIL goes back to the worker with the checker's output.
-2. **Quick diff review** on PASS: scope creep, deleted or skipped tests, unexplained snapshot changes, files outside the own-file layout.
+1. **Acceptance checker.** Launch a fresh checker subagent (prompt below) that gets only the ticket text, the branch or worktree path and a port pair: never the worker's report or diff. Run checkers one browser at a time. Any FAIL goes back to the worker with the checker's output (SendMessage to the same worker keeps its context); when it reports DONE again, run a fresh checker before merging.
+2. **Quick diff review** on PASS with `git diff main...<branch>` (three dots: only the branch's own changes; two dots also shows everything merged to main since the branch started, as if the branch reverted it): scope creep, deleted or skipped tests, unexplained snapshot changes, files outside the own-file layout.
 3. **Merge right away** (never batch; new workers then branch from a main that has their neighbours' labels), from the main checkout:
    ```bash
    if ! git -c merge.conflictStyle=diff3 merge --no-edit <branch>; then
@@ -80,7 +82,7 @@ A fresh subagent that wrote no tickets: re-checks every ticket's acceptance crit
 
 ```
 You are a worker finishing ONE ticket on a Frist app clone. You are in your own git worktree <path>; other workers are editing other tickets in parallel on the same machine.
-Read ~/Hackathons-local/frist/DISCOVERY.md first (stack, commands, ports, hot files).
+Read ~/Hackathons-local/frist/<clone>/DISCOVERY.md first (stack, commands, ports, hot files).
 Ticket: <ID> <title>
 Spec / acceptance criteria (verbatim): <paste>
 Files likely involved: <list>. Do NOT edit: <shared hot files>, except as the merge rules below allow.
@@ -90,10 +92,10 @@ Use ports <port>/<backend port> for the dev server.
 How you are graded: hidden browser journeys replay this ticket on a fresh database with inputs you have not seen (other records and values than the ticket's examples), select elements by the app's existing labels, roles and component classes, and also replay journeys over the rest of the app. Every "Requested behavior" bullet is checked, not just the acceptance criteria. An independent checker will re-test your branch from the ticket alone before it merges.
 
 Do:
-1. Read the relevant code first. Find the closest existing feature (page, card, menu, picker, list row, API route) and copy its structure, components, CSS classes, helpers and label style. If design/ has a screenshot of this screen, match it. If the bug is in one list item, sibling or route, grep for the same pattern elsewhere.
+1. Read the relevant code first. Find the closest existing feature (page, card, menu, picker, list row, API route) and copy its structure, components, CSS classes, helpers and label style. If design/ has a screenshot of this screen, match it. If the bug is in one list item, sibling or route, grep for the same pattern elsewhere. If your fix changes what an API parameter or shared helper means, grep every caller and adjust them too (in the dry run a range fix made every Quick Date preset cover two days).
 2. Implement the smallest change that meets every Requested behavior bullet and acceptance criterion literally (labels, texts, formats, colours, ordering, limits, error messages, status codes). Use the ticket's labels and values character for character as visible text (if it says pick "8", the option reads "8", not "8 pts"). If another control in the same panel already has your label, say so in NOTES. If the ticket needs a hot file the merge rules do not cover, stop and report NEEDS-DEP.
 3. Add or update tests if the repo has tests for that layer.
-4. Verify and paste the tail of each output (N/A for steps the repo lacks): a. tests for this area, b. full suite, c. lint (no new errors), d. typecheck, e. build, f. smoke check on a FRESHLY started dev server on your ports after your final commit: a headless Playwright script that checks each criterion and bullet, printing PASS/FAIL per line with the text seen. Find every control by the ticket's own words with exact matching (get_by_role("option", name="8", exact=True), get_by_text("None", exact=True)), never by your own class, test id or a looser match. If the exact string does not find it, that line is FAIL and you are not DONE. Try at least one input that is not the ticket's example. Then load two unrelated pages and one neighbouring feature and confirm they still work.
+4. Verify and paste the tail of each output (N/A for steps the repo lacks): a. tests for this area, b. full suite, c. lint (no new errors), d. typecheck, e. build, f. smoke check on a FRESHLY started dev server on your ports after your final commit: a headless Playwright script that checks each criterion and bullet, printing PASS/FAIL per line with the text seen. Find every control by the ticket's own words with exact matching (get_by_role("option", name="8", exact=True), get_by_text("None", exact=True)), never by your own class, test id or a looser match. If the exact string does not find it, that line is FAIL and you are not DONE. A control the ticket names only by its icon or position (bell, toggle, date input) is found by its existing accessible name (aria-label or title) with exact matching; name it in NOTES. Try at least one input that is not the ticket's example. Then load two unrelated pages and one neighbouring feature and confirm they still work.
 5. Commit "<ID>: <short summary>". Leave git status clean: smoke scripts, screenshots and logs go in /tmp/claude-501/.
 Never delete, skip or weaken existing tests. Use every resource that helps: web search, docs, the real product's public site for exact wording and behavior, the repo, design/. Do not add dependencies yourself. Prefer tools already in node_modules/.bin over npx downloads.
 
@@ -115,13 +117,13 @@ NOTES: <ambiguities and the reading you chose, files outside the list and why>
 
 ```
 You are an ACCEPTANCE CHECKER for one Frist clone ticket. You did not write the code and you get no report from whoever did. Do not edit the repo.
-Read ~/Hackathons-local/frist/DISCOVERY.md (commands, offline Playwright launch line).
+Read ~/Hackathons-local/frist/<clone>/DISCOVERY.md (commands, offline Playwright launch line).
 Ticket (verbatim): <paste>
 Code to check: worktree <path> (branch <branch>). Ports: <port>/<backend port>. Write scripts and logs only in /tmp/claude-501/check-<ID>/.
 1. Start the app freshly from that worktree on your ports.
-2. Write your own headless Playwright checks: one per acceptance criterion and one per Requested behavior bullet. Locate every control and text by the ticket's exact words with exact matching (role + exact name, or exact text). A control the exact words do not find is FAIL. Add one input that is not the ticket's example.
-3. Load two unrelated existing pages and one neighbouring feature on the same screen; they must still work.
-4. Stop your servers by port. Close every browser.
+2. Write your own headless Playwright checks: one per acceptance criterion and one per Requested behavior bullet. Locate every control and text by the ticket's exact words with exact matching (role + exact name, or exact text). A control the exact words do not find is FAIL. A control the ticket names only by its icon or position is located by its existing accessible name (aria-label or title) with exact matching; say so in NOTES. Add one input that is not the ticket's example; you may create records through the app or its API and restart with a different clock on your own fresh DB.
+3. Load two unrelated existing pages and one neighbouring feature on the same screen (including other controls that call the same API or helper); they must still work.
+4. Stop your servers by port. Close the browsers you started; leave any other process alone.
 Return exactly:
 CHECK: PASS | FAIL
 LINES: <one line per criterion/bullet/regression: PASS|FAIL, the exact text or value seen>
