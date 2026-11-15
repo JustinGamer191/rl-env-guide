@@ -87,6 +87,7 @@ So difficulty is a question for staff, not a gate we set:
 - **Submit correct, well-tested tasks even if Opus solves them.** A held task is worth 0. Calibrate from Frist's first review and staff answers.
 - **Only if staff or a rejection say difficulty matters:** harden (coding: bigger clones, 8+ edits across 5+ files that a grep of the ticket's nouns does not reach, UI-heavy logic-only removals, runtime-only behavior; CU: frist-computer-use-task "Making it hard"), then probe 2 Opus + 2 Fable and aim for a mixed result.
 - A 0-solve result means read the failures: ambiguity or over-fit tests get fixed before calling it hard.
+- **How to harden, ranked, with Frist's own solve-rate data and a screenshot-only probe fix:** `references/making-tasks-hard.md`.
 
 ## BOARD.md format
 
