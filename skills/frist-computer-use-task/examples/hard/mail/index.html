@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quillmail</title>
+<style>
+  :root { --bg:#f6f7fb; --line:#e3e5ee; --fg:#1d2030; --muted:#5f6478; --faint:#9096a8; --accent:#2f6fec; --sel:#eaf1ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color:var(--fg); background:var(--bg); }
+  header { height:56px; display:flex; align-items:center; gap:16px; padding:0 18px; background:#fff; border-bottom:1px solid var(--line); }
+  .logo { font-weight:700; font-size:17px; color:var(--accent); width:200px; }
+  header input { flex:1; max-width:560px; height:38px; border:1px solid var(--line); border-radius:10px; padding:0 12px; font-size:14px; background:var(--bg); }
+  .me { margin-left:auto; color:var(--muted); font-size:13px; }
+  .wrap { display:flex; height:calc(100vh - 56px); }
+  nav { width:218px; padding:12px 10px; }
+  nav button { display:flex; width:100%; justify-content:space-between; border:0; background:none; padding:9px 12px; border-radius:10px; font-size:14px; color:var(--muted); cursor:pointer; text-align:left; }
+  nav button.on { background:var(--sel); color:var(--accent); font-weight:600; }
+  nav .count { font-size:12px; }
+  main { flex:1; margin:12px 12px 12px 0; background:#fff; border:1px solid var(--line); border-radius:14px; overflow:auto; }
+  .bar { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--line); position:sticky; top:0; background:#fff; }
+  .bar .sp { flex:1; }
+  .btn { height:32px; padding:0 12px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; font-size:13px; color:var(--fg); }
+  .btn:disabled { opacity:.45; cursor:default; }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .row { display:flex; align-items:center; gap:12px; padding:10px 14px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .row:hover { background:#fafbff; }
+  .row.unread .who, .row.unread .subj { font-weight:700; }
+  .row .who { width:190px; flex-shrink:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .txt { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--muted); }
+  .row .subj { color:var(--fg); }
+  .row .date { width:78px; text-align:right; color:var(--faint); font-size:12.5px; flex-shrink:0; }
+  .row .star { color:#f5b301; width:14px; }
+  .empty { padding:60px; text-align:center; color:var(--faint); }
+  .msg { padding:22px 28px; }
+  .msg h1 { font-size:21px; margin:0 0 14px; }
+  .msg .meta { color:var(--muted); font-size:13px; margin-bottom:18px; }
+  .msg .meta b { color:var(--fg); }
+  .msg pre { white-space:pre-wrap; font:inherit; font-size:14.5px; margin:0 0 20px; }
+  textarea { width:100%; min-height:110px; border:1px solid var(--line); border-radius:10px; padding:10px; font:inherit; }
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#1d2030; color:#fff; padding:8px 14px; border-radius:8px; font-size:13px; }
+</style>
+</head>
+<body>
+<header><div class="logo">Quillmail</div><input id="q" placeholder="Search mail"><div class="me" id="me"></div></header>
+<div class="wrap"><nav id="nav"></nav><main id="main"></main></div>
+<script>
+const S = { folder: 'inbox', page: 1, q: '', list: null, open: null, selected: new Set(), counts: {}, now: null, replying: false };
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const api = async (path, opts = {}) => { const r = await fetch(path, { method: opts.method || 'GET', headers: { 'content-type': 'application/json' }, body: opts.body ? JSON.stringify(opts.body) : undefined }); const j = await r.json(); if (!r.ok) throw new Error(j.error || 'Request failed'); return j; };
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const time = (d) => { let h = d.getUTCHours(); const m = String(d.getUTCMinutes()).padStart(2, '0'); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${m} ${ap}`; };
+const dayKey = (d) => d.toISOString().slice(0, 10);
+function shortDate(iso) {
+  const d = new Date(iso), n = new Date(S.now);
+  if (dayKey(d) === dayKey(n)) return time(d);
+  const diff = (Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()) - Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())) / 86400000;
+  if (diff > 0 && diff < 7) return DAYS[d.getUTCDay()];
+  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+}
+const longDate = (iso) => { const d = new Date(iso); return `${DAYS[d.getUTCDay()]}, ${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}, ${time(d)}`; };
+let toastT; function toast(t) { document.querySelector('.toast')?.remove(); const e = document.createElement('div'); e.className = 'toast'; e.textContent = t; document.body.appendChild(e); clearTimeout(toastT); toastT = setTimeout(() => e.remove(), 2200); }
+
+async function refresh() {
+  S.counts = await api('/api/folders');
+  S.list = await api(`/api/messages?folder=${S.folder}&page=${S.page}&q=${encodeURIComponent(S.q)}`);
+  S.page = S.list.page; render();
+}
+function renderNav() {
+  const f = [['inbox', 'Inbox', S.counts.inbox?.unread || ''], ['starred', 'Starred', ''], ['sent', 'Sent', ''], ['archive', 'Archive', '']];
+  document.getElementById('nav').innerHTML = f.map(([k, l, c]) => `<button data-folder="${k}" class="${S.folder === k && !S.open ? 'on' : ''}">${l}<span class="count">${c}</span></button>`).join('');
+  document.querySelectorAll('nav button').forEach((b) => b.onclick = () => actions.openFolder(b.dataset.folder));
+}
+function render() {
+  renderNav();
+  const main = document.getElementById('main');
+  if (S.open) {
+    const m = S.open;
+    main.innerHTML = `<div class="bar"><button class="btn" id="back">← Back</button>
+      ${m.folder === 'archive' ? '<button class="btn" id="toInbox">Move to Inbox</button>' : m.folder === 'inbox' ? '<button class="btn" id="arch">Archive</button>' : ''}
+      <button class="btn" id="unread">Mark as unread</button><button class="btn" id="star">${m.starred ? '★ Starred' : '☆ Star'}</button>
+      ${m.folder !== 'sent' ? '<button class="btn" id="reply">Reply</button>' : ''}<span class="sp"></span></div>
+      <div class="msg"><h1>${esc(m.subject)}</h1>
+      <div class="meta"><b>${esc(m.fromName)}</b> &lt;${esc(m.from)}&gt; to ${esc(m.to)}<br>${longDate(m.date)}</div>
+      <pre>${esc(m.body)}</pre>
+      ${S.replying ? `<form id="rf"><textarea id="rb" placeholder="Write your reply"></textarea><div style="margin-top:8px;display:flex;gap:8px"><button class="btn primary" type="submit">Send</button><button class="btn" type="button" id="rc">Discard</button></div></form>` : ''}</div>`;
+    document.getElementById('back').onclick = () => actions.back();
+    document.getElementById('arch') && (document.getElementById('arch').onclick = () => actions.archive([m.id]));
+    document.getElementById('toInbox') && (document.getElementById('toInbox').onclick = () => actions.moveToInbox(m.id));
+    document.getElementById('unread').onclick = () => actions.markRead([m.id], false);
+    document.getElementById('star').onclick = () => actions.star(m.id);
+    document.getElementById('reply') && (document.getElementById('reply').onclick = () => { S.replying = true; render(); document.getElementById('rb').focus(); });
+    if (S.replying) {
+      document.getElementById('rf').onsubmit = (e) => { e.preventDefault(); actions.reply(m.id, document.getElementById('rb').value); };
+      document.getElementById('rc').onclick = () => { S.replying = false; render(); };
+    }
+    return;
+  }
+  const L = S.list; const start = L.total ? (L.page - 1) * L.pageSize + 1 : 0; const end = Math.min(L.total, L.page * L.pageSize);
+  const allSel = L.items.length && L.items.every((m) => S.selected.has(m.id));
+  main.innerHTML = `<div class="bar"><input type="checkbox" id="all" title="Select all on this page" ${allSel ? 'checked' : ''}>
+    ${S.folder === 'inbox' ? `<button class="btn" id="barch" ${S.selected.size ? '' : 'disabled'}>Archive</button>` : ''}
+    ${S.folder === 'archive' ? `<button class="btn" id="binbox" ${S.selected.size ? '' : 'disabled'}>Move to Inbox</button>` : ''}
+    <button class="btn" id="bread" ${S.selected.size ? '' : 'disabled'}>Mark as read</button>
+    <span class="sp"></span><span style="color:var(--muted);font-size:13px">${start}–${end} of ${L.total}</span>
+    <button class="btn" id="prev" title="Newer" ${L.page <= 1 ? 'disabled' : ''}>‹</button><button class="btn" id="next" title="Older" ${L.page >= L.pages ? 'disabled' : ''}>›</button></div>
+    ${L.items.length ? L.items.map((m) => `<div class="row ${m.read ? '' : 'unread'}" data-id="${m.id}">
+      <input type="checkbox" class="sel" ${S.selected.has(m.id) ? 'checked' : ''}><span class="star">${m.starred ? '★' : ''}</span>
+      <span class="who" title="${esc(m.from)}">${esc(S.folder === 'sent' ? 'To: ' + m.to : m.fromName)}</span>
+      <span class="txt"><span class="subj">${esc(m.subject)}</span> — ${esc(m.snippet)}</span><span class="date">${shortDate(m.date)}</span></div>`).join('') : '<div class="empty">No messages</div>'}`;
+  document.getElementById('all').onchange = (e) => { L.items.forEach((m) => e.target.checked ? S.selected.add(m.id) : S.selected.delete(m.id)); render(); };
+  document.getElementById('barch') && (document.getElementById('barch').onclick = () => actions.archive([...S.selected]));
+  document.getElementById('binbox') && (document.getElementById('binbox').onclick = () => Promise.all([...S.selected].map((id) => api(`/api/messages/${id}/inbox`, { method: 'POST' }))).then(() => { S.selected.clear(); toast('Moved to Inbox'); refresh(); }));
+  document.getElementById('bread').onclick = () => actions.markRead([...S.selected], true);
+  document.getElementById('prev').onclick = () => { S.page--; refresh(); };
+  document.getElementById('next').onclick = () => { S.page++; refresh(); };
+  document.querySelectorAll('.row').forEach((r) => {
+    r.querySelector('.sel').onclick = (e) => { e.stopPropagation(); e.target.checked ? S.selected.add(r.dataset.id) : S.selected.delete(r.dataset.id); render(); };
+    r.onclick = () => actions.openMessage(r.dataset.id);
+  });
+}
+const actions = {
+  openFolder: (f) => { S.folder = f; S.page = 1; S.open = null; S.selected.clear(); S.replying = false; return refresh(); },
+  openMessage: async (id) => { S.open = await api(`/api/messages/${id}`); S.replying = false; S.counts = await api('/api/folders'); render(); return S.open; },
+  back: () => { S.open = null; S.replying = false; return refresh(); },
+  archive: async (ids) => { for (const id of ids) await api(`/api/messages/${id}/archive`, { method: 'POST' }); S.selected.clear(); toast(ids.length > 1 ? `${ids.length} conversations archived` : 'Conversation archived'); S.open = null; return refresh(); },
+  moveToInbox: async (id) => { S.open = await api(`/api/messages/${id}/inbox`, { method: 'POST' }); toast('Moved to Inbox'); render(); },
+  markRead: async (ids, read) => { for (const id of ids) await api(`/api/messages/${id}/read`, { method: 'POST', body: { read } }); S.selected.clear(); if (S.open && !read) S.open = null; return refresh(); },
+  star: async (id) => { S.open = await api(`/api/messages/${id}/star`, { method: 'POST' }); render(); },
+  reply: async (id, text) => { if (!text.trim()) return; await api(`/api/messages/${id}/reply`, { method: 'POST', body: { body: text } }); S.replying = false; toast('Reply sent'); render(); },
+};
+window.__mail = { version: 1, getState: () => JSON.parse(JSON.stringify({ folder: S.folder, page: S.page, q: S.q, list: S.list, open: S.open, counts: S.counts })), actions };
+let qt; document.getElementById('q').oninput = (e) => { clearTimeout(qt); qt = setTimeout(() => { S.q = e.target.value; S.page = 1; S.open = null; refresh(); }, 250); };
+(async () => { S.now = (await api('/api/now')).now; document.getElementById('me').textContent = 'you@quillstack.dev'; await refresh(); })();
+</script>
+</body>
+</html>
