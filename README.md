@@ -43,7 +43,7 @@ Coding tasks dominate the leaderboard, so the plan is: finish the first clone fa
 | `skills/frist-computer-use-task/` | 100-point tasks: fail-closed state verifiers, oracle and adversary runs, tested example harnesses. |
 | `tools/practice-clone-kit/` | Record a local app, generate a clone from the recordings, grade workers with hidden journeys. For practice runs. |
 | `tools/merge/` | The merge helpers from the merge-strategy test. |
-| `notes/` | Frist research, the prep checklist with questions for staff, and the RL environment survey. |
+| `notes/` | Frist research, the prep checklist, the RL environment survey, and `event-day-format.md` (what the real event looked like). |
 
 ## Install
 
