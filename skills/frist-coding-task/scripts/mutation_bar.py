@@ -146,6 +146,12 @@ def hunk_ranges(patch):
     return out
 
 
+try:
+    sys.stdout.reconfigure(line_buffering=True)
+except Exception:
+    pass
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--task-dir", required=True)
@@ -300,7 +306,7 @@ def main():
         files = [f.strip() for f in a.mutate_files.split(",") if f.strip()] or patch_files(sol)
         equiv = set()
         if a.equivalent and os.path.exists(a.equivalent):
-            equiv = {l.strip() for l in open(a.equivalent) if l.strip() and not l.startswith("#")}
+            equiv = {l.split("#", 1)[0].strip() for l in open(a.equivalent) if l.split("#", 1)[0].strip()}
         cands, ranges = [], hunk_ranges(sol)
         for rel in files:
             path = f"{ref_tree}/{rel}"

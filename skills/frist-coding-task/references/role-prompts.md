@@ -203,7 +203,7 @@ You are the CHECKER for <task>. You run checks and report; you do not edit tests
    python3 ~/.claude/skills/frist-coding-task/scripts/mutation_bar.py --task-dir <task> --tests-dir hidden_tests \
      --test-cmd '<F2P>' --p2p-cmd '<P2P>' --syntax-cmd '<typecheck>' --alt-dir alt_plus_solver \
      --equivalent <task>/equivalent_mutants.txt --jobs 1 --slot-base <unique per concurrent run> --timeout 420 \
-     --json-out <task>/mutation_report.json        (prefix with `nice -n 15`; MB_PORT_BASE=<free range> in the env)
+     --json-out <task>/mutation_report.json        (prefix with `nice -n 15`; give each concurrent run its own `--slot-base`; MB_PORT_BASE only matters if your harness reads it)
    Auto mutants cover only lines within --mutate-context (default 25) of the fix hunks. Triage every survivor:
    EQUIVALENT (cannot change behavior, e.g. `?? '?'` -> `|| '?'` on a non-empty name), OUT OF SCOPE (error-path guards
    such as 404/410 codes, or a neighbouring handler caught by the window; the ticket does not cover them), or MISSING
