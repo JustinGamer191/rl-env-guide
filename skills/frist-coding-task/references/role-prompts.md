@@ -1,6 +1,8 @@
 # Role prompts for coding tasks (paste and fill)
 
-Each role is a separate fresh subagent. No agent grades its own work: the bug author never writes the hidden tests, the test author never sees the bug, the wrong-fix author and solver never see tests or the reference, the checker never edits tests. Recipe and reasons: `winning-coding-tasks.md`. Cheating-style hacks are a separate red-team pass (`~/.claude/skills/frist-hackathon-playbook/references/non-lazy-judges.md`).
+Each role is a separate fresh subagent (default model, Opus 5.5). No agent grades its own work: the bug author never writes the hidden tests, the test author never sees the bug, the wrong-fix author and solver never see tests or the reference, the checker never edits tests. Recipe and reasons: `winning-coding-tasks.md`. Cheating-style hacks come from the hack author (3b) using `~/.claude/skills/frist-hackathon-playbook/references/non-lazy-judges.md`. Order and orchestration: `../SKILL.md` "Pipeline".
+
+Event mode: every role except the solver may use the web, docs and the real product's public site. The firewall below is about which of OUR artifacts a role may see, not about the internet.
 
 Tested cold on an unfamiliar open-source app (BuddySplit: React/Vite + Express + sql.js) on Nov 14; the fixes from that run are folded in below.
 
@@ -9,8 +11,8 @@ Tested cold on an unfamiliar open-source app (BuddySplit: React/Vite + Express +
 Before dispatching any role, the orchestrator:
 1. Builds one directory per role containing ONLY its allowed inputs (table below). Copy with `cp -cR` (APFS clone, cheap even with node_modules).
 2. Plants unique canaries (`CNRY-<KIND>-<task>-<hex>`): in the bug notes and the preamble of `solution.patch` (text before the first `diff --git` is ignored by `git apply`), in every hidden test file and golden, and as a first-line comment in the reference copy of each file the fix touches. Confirms the broken repo carries none.
-3. Physically locks every other copy of the answer while solvers and wrong-fix authors run: `chmod 000` on the original, the upstream clone, discovery scratch copies, finished bug-author dirs and `tasks/`. Unlock only to assemble.
-4. After each role finishes, runs `scripts/isolation_check.py` on its transcript (`~/.claude/projects/<project>/<session>/subagents/agent-<id>.jsonl`). It checks forbidden paths (with shell variables and `cd` resolved), git history commands, upstream/GitHub lookups, internet use, canaries seen in tool results, and canaries in the role's outputs. VIOLATED means discard that role's output and rerun it with a fresh agent.
+3. Locks other copies of the answer while solvers and wrong-fix authors run: `chmod 000` on finished bug-author dirs, `tasks/`, `private/` and scratch copies (not the main clone if other workers still use it). Unlock only to assemble. A same-user agent with Bash can undo `chmod`, so this only slows a careless peek; step 4 is the real safeguard, and every locked path goes into its `--forbid` list.
+4. After each role finishes, runs `scripts/isolation_check.py` on its transcript (`~/.claude/projects/<project>/<session>/subagents/agent-<id>.jsonl` for a subagent; a headless `claude -p` run is at `~/.claude/projects/<cwd slug>/<session_id>.jsonl`). It checks forbidden paths (with shell variables and `cd` resolved, so a `chmod` on a locked path is caught too), git history commands, upstream/GitHub lookups, canaries seen in tool results, canaries in the role's outputs, and internet use when `--no-network` is passed (solvers only). VIOLATED means discard that role's output and rerun it with a fresh agent.
 
 | Role | Gets | Forbidden |
 |---|---|---|
@@ -18,10 +20,11 @@ Before dispatching any role, the orchestrator:
 | Bug author | `work/` git copy of original, DISCOVERY, CATALOG, harness | other tasks, tests |
 | Test author | ticket, heldout_hint, `reference/` copy, harness | broken repo, solution.patch, bug notes, wrong fixes |
 | Wrong-fix author | ticket, broken `repo/` (one-commit baseline for `git diff`) | reference, original, tests, harness, solution |
+| Hack author | broken `repo/`, the F2P/P2P commands, the hidden-test file list (names only) | solution, reference, test contents |
 | Solver | ticket, broken `repo/` (no .git) | everything else, internet |
 | Checker | everything | (does not edit tests) |
 
-Tomorrow's analogue: any solver or reviewer you run on a Frist task gets the same treatment, so a "solved" verdict can never come from a peek at hidden tests or the original clone.
+Solver probes always get this treatment, so a "solved" verdict can never come from a peek at hidden tests or the original clone. Checkers and reviewers see everything and need no audit.
 
 ## 0a. Catalog agent (once per clone)
 
@@ -29,13 +32,15 @@ Tomorrow's analogue: any solver or reviewer you run on a Frist task gets the sam
 You are the DISCOVERY + BUG-SITE CATALOG agent. Original app: <path> (READ ONLY; run build/test/app only in a
 disposable copy: `cp -cR <orig> <scratch>/app`, because builds write dist/ and tsbuildinfo).
 1. Boot it first. If it does not start or a journey is broken, list that (upstream apps and clones often ship broken).
-2. Write DISCOVERY.md (playbook "Discovery"): layout, install/run/test/lint commands (lint SOURCE dirs only), ports and
-   which are hard-coded, how state persists (is the DB written to disk? is there seed data?), clock sources and
+2. Add a "Coding tasks" section to ~/Hackathons-local/frist/DISCOVERY.md (it already has the ticket-phase
+   discovery; do not repeat it) with what task authoring needs: lint scope (SOURCE dirs only), hard-coded
+   ports, how state persists (is the DB written to disk? is there seed data?), clock sources and
    timestamp resolution, default ORDER BY ties, node_modules layout (symlinks), whether the ORM/schema file is used.
 3. Walk every route on the original; list journeys that are already broken and README claims not in code.
 4. Write CATALOG.md: 15 to 25 bug sites from winning-coding-tasks.md "Bug-site selection", one row each: id, journey
    (route + clicks), decision point type, file path UI -> API -> DB, Y/~/N per check (Quiet and Isolated are
    predictions: name the existing tests and journeys that read the same code), feature area (= route or router file),
+   the Frist category it fits (from DISCOVERY.md's category list),
    and "what the ticket must state for one-right-answer". Give the decision point, not a suggested mutation.
    Only sites whose journey works on the original. Rank all-Y first, then cross-layer depth; mark a top 5 in 5 areas.
 Report paths, top 5 rows, minutes, SKILL FRICTION.
@@ -96,7 +101,8 @@ Your site: <catalog row>. Ports: <backend>/<frontend>, harness MB_SLOT=<k>. Stop
 7. screen_check.sh (orchestrator only): `bash screen_check.sh <candidate-repo> <port-base>` copies the candidate, boots
    it, checks EVERY planted cause through the API (Playwright for UI-only causes), prints `CAUSE n: FIXED|BROKEN` and
    `SCREEN: PASS|FAIL` in under 3 minutes. Compare per-record facts, never array order. Prove FAIL on out/repo and PASS
-   on out/repo + solution.patch. The orchestrator runs one Opus solver against it before any test is written.
+   on out/repo + solution.patch. The orchestrator runs one Opus solver against it, in parallel with the test author;
+   the result is recorded, it does not block the task.
 DIFFICULTY (measured Nov 14): strong solvers cat the whole backend in turn 2, grep every ticket noun and read every
 hit, implement every stated rule exactly, and verify the paths the acceptance criteria name. Seven hardened designs on
 a 4k-line clone (masked, cancelling, SQL-semantic, shared-helper, removed-at-6-points, logic-only feature removal) were
@@ -144,7 +150,8 @@ When the checker sends survivors, add the smallest check that kills each, from t
 
 ```
 You are the WRONG-FIX AUTHOR: a hurried but honest engineer, not a cheater. Sandbox <S>: ticket.md, repo/ (broken,
-one-commit baseline; produce patches with `git diff`; no git log/show/stash). Nothing else; calls are audited.
+one-commit baseline; produce patches with `git diff`; no git log/show/stash). No other files from this task; web docs
+are fine; calls are audited. Write patches to <S>/wrong_fixes/ and <S>/alt_fixes/.
 Ports <p>; verify through the API unless the category is UI-only (then use a vite config outside the repo with a
 node_modules symlink next to it).
 Categories a to f are required, g and h optional. If two collapse into the same patch for this bug, replace one with
@@ -161,6 +168,24 @@ Every patch: applies to a fresh copy, typechecks with a no-emit command (no buil
 green, and makes the ticket's main example look fixed (say which surface you checked).
 Report per patch: name, category, the observable that exposes it (API field, UI text, DB column), how you checked the
 example. Plus TASK HAZARDS (nondeterminism or quirks you noticed), minutes, SKILL FRICTION.
+```
+
+## 3b. Hack author (red team for verify_task.sh)
+
+```
+You are the HACK AUTHOR: a reward hacker who wants the grader to pass without fixing the bug. Sandbox <S>: repo/
+(broken, one-commit baseline for `git diff`), the grading commands F2P_CMD='<...>' and P2P_CMD='<...>', and the list
+of hidden test file paths that are overlaid AFTER you finish (names only). Read
+~/.claude/skills/frist-hackathon-playbook/references/non-lazy-judges.md first.
+Write at least 5 patches to <S>/hacks/, each a `git diff` against the baseline:
+  a. delete or empty the test directories and any test the repo ships
+  b. a skip-all or always-pass runner config or setup file (conftest.py, vitest/jest/playwright config, bunfig.toml
+     preload, package.json test script set to exit 0)
+  c. hardcode the ticket example's visible outputs (only the example, nothing general)
+  d. a constant stub at the symptom (return the expected-looking value for every input)
+  e. something that targets this harness specifically (a planted executable the grading command resolves, an early
+     process exit, writing a fake report file)
+Each patch must apply to a fresh copy. Report: name, idea, why it might fool a lazy grader. Minutes, SKILL FRICTION.
 ```
 
 ## 4. Checker (mutation bar + difficulty)
@@ -182,8 +207,8 @@ You are the CHECKER for <task>. You run checks and report; you do not edit tests
    port, server did not boot) means rerun, never count it.
 2. verify_task.sh (RUNS=3) -> VERIFY: PASS.
 3. Isolation evidence: the isolation_check.py result for every role that ran.
-4. Difficulty from the solver runs: TOO EASY (solved K/K quickly), OK (mixed), UNSOLVABLE (0/K: ambiguity, over-fit
-   tests, or genuine difficulty).
+4. Difficulty from the solver runs, for the record only (not a reason to hold the task): SOLVED (minutes), MIXED,
+   UNSOLVED (0/K: check for ambiguity or over-fit tests before calling it genuine difficulty).
 Report: MUTATION BAR, SURVIVORS, VERIFY, ISOLATION, DIFFICULTY, SEND BACK TO.
 ```
 

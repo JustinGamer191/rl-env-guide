@@ -9,7 +9,7 @@ A computer-use task: a shared world (several clone apps with seeded data), a nat
 
 **Frist's world, template and verifier API win.** Discover first: how the world is composed (which clones, ports, docker compose), the seed/fixture and reset mechanism, how a verifier reads state (DB query, internal API, provided helper), and an example task. Put it in DISCOVERY.md. Map our pieces onto their slots; `~/.claude/skills/frist-hackathon-playbook/references/task-formats.md` shows BrowserGym/OSWorld/HUD equivalents. Ask staff if the verifier interface is unclear.
 
-## Known Frist world format (public, verify tomorrow)
+## Known Frist world format (public, verify at kickoff)
 
 From Frist's blog (FristWorld, Oct 17 2026: six cloned sites such as Air Canada, Nordstrom, Zappos, OpenTable with 31 cross-site tasks; MedPractice, Nov 6 2026: NetSuite, Bill.com, Gmail, Sheets clones), summarized in `~/Documents/Hackathons/Frist/frist-intel.md`:
 - Each app runs its own backend; a **world ledger** across them tracks state and an event log, and grading deterministically checks final state (tables like `WorldState`, `WorldEvent`, `AuditLog` appeared in samples).
@@ -20,7 +20,7 @@ From Frist's blog (FristWorld, Oct 17 2026: six cloned sites such as Air Canada,
 
 ## Point math
 
-100 per accepted task versus 500 per coding task, so these are for idle parallel slots, for when coding tasks are blocked, or when a template makes them very cheap (one good template can mint several accepted variants if Frist accepts variants; ask).
+CU tasks are filler behind coding tasks: 100 per accepted task versus 500. Use idle parallel slots, a blocked coding pipeline, or a template that mints accepted variants cheaply (ask staff whether variants count separately). A world needs several finished apps: our own extra clones, or a world Frist provides, or apps from a team we pair with after finishing an app.
 
 ## Designing a good task
 
@@ -30,14 +30,6 @@ From Frist's blog (FristWorld, Oct 17 2026: six cloned sites such as Air Canada,
 - **One correct end state, many paths.** The verifier checks the outcome, never the click path, the agent's final chat message, or UI text.
 - **Enough checks to not be trivial.** Frist's MedPractice grades by atomic checks: 8 or fewer is easy, 9 to 19 medium, 20+ hard. Rehearsal tasks with 2 to 6 checks were solved 10/10 by Opus in about 2 to 4 minutes, so aim for medium: one rule applied over several records, a derived-metric trap, or the deciding fact hidden on a page the agent must open.
 - **No wall clock, no randomness.** If dates matter, use seeded absolute dates in the goal ("due Nov 3"), not "today".
-
-## Making it hard (rehearsal data, Nov 14)
-
-Single levers did not lower the solve rate for Opus 5.5 or Fable 5.2: date math against the fixed clock, a derived sum or argmax, cross-app rules read from mail, a later correcting email, a look-alike sender, near-twin people and dates. Tasks with 12 to 20 checks across two apps still went 4/4 and 7/7 (3.6 to 8.5 min each); both models read every email, including corrections. What to try instead, stacked in one task:
-- Layered amendments: rules spread across several messages, where a later one changes an earlier one and a second later one changes it again.
-- Deciding facts that live only in per-item comments or history (who moved it to Done, a "merged to release" comment versus a "will merge" twin), not in list views.
-- Branch flips: a late message that switches a record to the less obvious branch and makes the order of actions matter.
-Before probing, assert offline that every trap still bites in the seed: run each "plausible mistake" against the expected state, and if it produces the same end state, it is not a trap; drop or redesign it. Then probe (playbook "Difficulty gate"); computer-use tasks are only 100 pts, so if two hardening rounds still give 4/4, ship the best one if Frist's reviewers accept it and move the time to coding tasks.
 
 ## Building one task (worker)
 
@@ -63,9 +55,19 @@ Before probing, assert offline that every trap still bites in the seed: run each
    - **Collateral:** oracle plus one unrelated change.
    - **Infeasible tasks:** act on the near miss and report complete; make it feasible (add the missing label) and act; act partly, then report infeasible.
 6. **Determinism.** Reset, oracle, verify, 3 times: always 1. Reset, null, verify: always 0.
-7. **Real-solver probe (orchestrator, after READY).** Two fresh subagents get only the goal, the URL, how to launch Playwright and a report command, each on its own world and port pair, with UI-only rules. Audit each transcript for `evaluate(`, `__app`, `/api/`, curl or sqlite and paths outside its work dir, then verify. A failure from the trap is the intended difficulty; a misread goal means rewrite it. Prompt and runner: `references/rehearsal-recipe.md` section 4.
+7. **Real-solver probe (orchestrator, after READY; record, do not block).** One headless Opus run by default (2 Opus + 2 Fable only when staff say difficulty matters). The solver gets only the goal, the URL, how to launch Playwright and a report command, on its own world and port pair, with UI-only rules; this is where isolation applies. Audit the transcript for `evaluate(`, `__app`, `/api/`, curl or sqlite and paths outside its work dir, then verify. Write the result on BOARD.md. A failure from the trap is the intended difficulty; a misread goal means rewrite it. Prompt: `references/rehearsal-recipe.md` section 4. Runner to adapt (built for the Quillstack world): `examples/hard/probe.py TASK ATTEMPT SLOT opus` boots a private world, runs headless `claude -p`, verifies and tears down; then `examples/hard/audit_fable.sh <TASK>_a<ATTEMPT>` audits the transcript (any model, despite the name); `probe_batch.sh SLOT "T:att:model ..."` queues attempts and waits while load is above 12.
 8. **Templatize.** Turn the task into a function of parameters (entity, target app, value) with goal, verifier expectations and oracle all derived from the same seeded parameters. Mint variants only from parameter combos that are unambiguous in the seed, and run steps 5 and 6 on every variant (cheap, it is scripted).
 9. **Package** in Frist's exact template with metadata (apps involved, difficulty).
+
+## Making it hard (rehearsal data, Nov 14)
+
+Only when staff or a rejection say difficulty matters (playbook "Difficulty gate"); until then, ship correct tasks and record the probe.
+
+Single levers did not lower the solve rate for Opus 5.5 or Fable 5.2: date math against the fixed clock, a derived sum or argmax, cross-app rules read from mail, a later correcting email, a look-alike sender, near-twin people and dates. Tasks with 12 to 20 checks across two apps still went 4/4 and 7/7 (3.6 to 8.5 min each); both models read every email, including corrections. What to try instead, stacked in one task:
+- Layered amendments: rules spread across several messages, where a later one changes an earlier one and a second later one changes it again.
+- Deciding facts that live only in per-item comments or history (who moved it to Done, a "merged to release" comment versus a "will merge" twin), not in list views.
+- Branch flips: a late message that switches a record to the less obvious branch and makes the order of actions matter.
+Before probing, assert offline that every trap still bites in the seed: run each "plausible mistake" against the expected state, and if it produces the same end state, it is not a trap; drop or redesign it. Then probe (playbook "Difficulty gate"); computer-use tasks are only 100 pts, so if two hardening rounds still give 4/4, ship the best one if Frist's reviewers accept it and move the time to coding tasks.
 
 ## Pre-submit checklist (reviewer runs every item, with evidence)
 
@@ -76,24 +78,25 @@ Before probing, assert offline that every trap still bites in the seed: run each
 5. Oracle scores 1 on 3 consecutive reset-run-verify cycles.
 6. Null agent scores 0.
 7. Change-everything, wrong-entity, answer-only, partial and collateral agents score 0, each for a state reason; the verifier fails closed when the required change is absent.
-8. Verifier checks backend state, normalizes values, and accepts alternative valid paths and formats (reviewer tries one alternative path, such as a different UI route or the API, and confirms 1).
+8. Verifier checks backend state, normalizes values, requires the report status (`report_complete`, or `report_infeasible` for infeasible tasks; its text is never evidence), and accepts alternative valid paths and formats: the scripted alt path scores 1, and the reviewer tries one more (a different UI route or the API) and confirms 1.
 9. Collateral damage check present and working (reviewer makes one unrelated extra change after the oracle and confirms the score drops to 0).
 10. No leaks: expected values and verifier code unreachable from the agent's browser or filesystem (curl `/@fs/<task path>` on a Vite app returns 403); goal text does not contain the answer.
 11. No time or randomness dependence; seeded absolute values only.
 12. Different from our other submitted tasks (or, for variants, Frist confirmed variants are accepted).
+13. Real-solver probe result recorded on BOARD.md with a clean transcript audit (a solve is not a failure).
 
 ## Worker prompt template (paste and fill)
 
 ```
-You are a worker authoring ONE computer-use task (or one template with N variants) for the Frist hackathon. Read <workspace>/DISCOVERY.md first (world composition, ports, seed and reset, verifier API, Frist's task template).
+You are a worker authoring ONE computer-use task (or one template with N variants) for the Frist hackathon. Read ~/Hackathons-local/frist/DISCOVERY.md first (world composition, ports, seed and reset, verifier API, Frist's task template).
 Then read ~/.claude/skills/frist-computer-use-task/SKILL.md and follow "Building one task" exactly.
-World: <how to start it, URLs>. Your dir: <workspace>/cu-tasks/<task-id>/ (do not edit the clones or the shared seed; if the world needs a reset script or seed change, stop and report NEEDS-WORLD).
+World: <how to start it, URLs>. Your dir: ~/Hackathons-local/frist/cu-tasks/<task-id>/ (do not edit the clones or the shared seed; if the world needs a reset script or seed change, stop and report NEEDS-WORLD).
 Apps to span: <app A> -> <app B>. Idea: <one line>. Variants wanted: <N or 0>.
 Other workers own: <their ideas>; do not overlap. If you run the world yourself, use ports <ports> so you do not collide.
 
-Deliverables, mapped onto Frist's template: goal text, verifier, oracle and alt-path (Playwright scripts), adversarial agents (null, answer-only, change-everything, wrong-entity, partial, collateral, plus the infeasible set if relevant) as scripts, metadata, and a run_checks script that does reset -> agent -> verify for each and prints score plus reasons. Start from ~/.claude/skills/frist-computer-use-task/examples/quillstack-harness/.
+Deliverables, mapped onto Frist's template: goal text, verifier, oracle and alt-path (Playwright scripts), adversarial agents (null, answer-only, change-everything, wrong-entity, partial, collateral, plus the infeasible set if relevant) as scripts, metadata, and a run_checks script that does reset -> agent -> verify for each and prints score plus reasons. Start from ~/.claude/skills/frist-computer-use-task/examples/quillstack-harness/ (single app); for multi-app tasks whose verifier is a plan(seed) rule, start from examples/hard/. Run everything with nice -n 15 and keep the 1-minute load under 12.
 
-Before reporting, run run_checks: oracle = 1 on 3 runs, alt path = 1, every adversarial agent = 0 for a state reason, reset dump diff empty. Iterate until true. Then self-check checklist items 1 to 12.
+Before reporting, run run_checks: oracle = 1 on 3 runs, alt path = 1, every adversarial agent = 0 for a state reason, reset dump diff empty. Iterate until true. Then self-check checklist items 1 to 12 (13 is the orchestrator's).
 
 Report exactly:
 STATUS: READY | BLOCKED | NEEDS-WORLD

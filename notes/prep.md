@@ -1,5 +1,7 @@
 # Frist hackathon prep (Sun Nov 15, 10am to 9pm, Atlanta)
 
+Step-by-step for 9:00 to 11:00 lives in the playbook skill: references/first-hour.md (it wins if anything here disagrees).
+
 Skills ready in Claude Code: `frist-hackathon-playbook` (start here), `frist-clone-tickets`, `frist-coding-task`, `frist-computer-use-task`. Background: `rl-env-research.md`, `frist-intel.md` in this folder.
 
 ## Tonight
@@ -30,14 +32,14 @@ To do tonight:
 - [ ] `claude` then `/login` if prompted; confirm `/mcp` shows what you need. Same for `codex login`.
 - [ ] Skim Frist's own material (15 min): one sample run (https://frist.ai/samples/opentable-photos-opus-5-5-r1.json) to see a real ticket and grading, and the clone repair guide (`human-guide.html` in https://github.com/runfrist/gh-pages-homepage). Key points are in `frist-intel.md`.
 - [ ] Laptop charger, phone charger, extension cord or power strip. Charge to 100%.
-- [ ] Make a workspace: `~/Documents/Hackathons/Frist/work/`.
+- [ ] Make a workspace: `~/Hackathons-local/frist/` (NOT under ~/Documents: iCloud breaks node_modules there).
 - [ ] Sleep. The event is 11 hours.
 
 ## First 30 minutes tomorrow
 
-1. **10:00** Get repo/clone access, rules, scoring page, submission portal. Write team name and links into `work/DISCOVERY.md`.
+1. **10:00** Get repo/clone access, rules, scoring page, submission portal. Write team name and links into `~/Hackathons-local/frist/DISCOVERY.md`.
 2. **10:05** Ask staff the questions below; write answers into DISCOVERY.md.
-3. **10:10** Start Claude Code in `work/`, say "Frist kickoff" so the playbook loads. It runs discovery: install, run, test, lint, build the clone, list tickets, find Frist's task template and categories, list shared hot files.
+3. **10:10** Start Claude Code in `~/Hackathons-local/frist/`, say "Frist kickoff" so the playbook loads. It runs discovery: install, run, test, lint, build the clone, list tickets, find Frist's task template and categories, list shared hot files.
 4. **10:20** Orchestrator creates `BOARD.md`, triages tickets by size, dispatches 3 to 5 ticket workers in worktrees.
 5. **10:30** While workers run: read Frist's task template and one example task end to end so coding-task workers can start the moment the clone is done.
 

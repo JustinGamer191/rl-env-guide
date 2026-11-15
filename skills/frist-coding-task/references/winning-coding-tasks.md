@@ -136,17 +136,17 @@ How the solvers won, read from their transcripts:
 4. **They verify the path the ticket's acceptance criteria name**, through the API and often Playwright. A masked cause on a path the criteria mention is found; even cancellation masking failed because the generalization named the Settle button.
 5. Fable 5.2 was as strong as Opus 5.5 here (equal solve rate, similar or shorter times). The one 11-minute run was Fable.
 
-So on a clone this size, planting cannot reach the 1-to-3-of-4 band with a fair ticket. What is left, untested here and to try first tomorrow: scale (a bigger clone where the relevant code does not fit in one read), fragmentation across many files the noun-grep does not reach (aim for 8+ edits in 5+ files), UI-heavy logic-only feature removals whose details only show when the page is driven, and runtime-only behaviour (state across reloads, live updates between two sessions, pagination with more rows than one page). Screen every candidate with ONE Opus run before writing tests (below); a screen under 5 minutes means harden or drop, do not spend the test-author hour on it.
+So on a clone this size, planting did not reach a mixed solve rate with a fair ticket. That is why the playbook's difficulty gate records the screen and submits anyway. If staff or a rejection say difficulty matters, what is left, untested here: scale (a bigger clone where the relevant code does not fit in one read), fragmentation across many files the noun-grep does not reach (aim for 8+ edits in 5+ files), UI-heavy logic-only feature removals whose details only show when the page is driven, and runtime-only behaviour (state across reloads, live updates between two sessions, pagination with more rows than one page). Screen every candidate with ONE Opus run (below) and record the result; it does not decide whether the task ships.
 
 ## Difficulty calibration
 
-- **Screen first (new, Nov 14).** After the bug author finishes and before any test author starts, run one headless Opus solver on the ticket + broken repo and grade it with a private `screen_check.sh` the bug author writes (one line per planted cause, FIXED/BROKEN). Solved in under 5 minutes = too easy; the test-author, wrong-fix and checker hour goes only to candidates that survive. Make the screen compare per-member facts, not array order (one screen reported a false failure on split order). Counting the screen as solver attempt 1 is fine when the repo and ticket do not change afterwards.
+- **Screen (record, do not block).** Right after the bug author finishes, run one headless Opus solver on the ticket + broken repo (command in `../SKILL.md` "Pipeline" step 2) and grade it with the private `screen_check.sh` the bug author writes (one line per planted cause, FIXED/BROKEN). It runs in parallel with the test, wrong-fix and hack authors. Write the result on BOARD.md and submit correct, well-tested tasks even when Opus solves them; only when staff or a rejection say difficulty matters does a quick solve mean harden first. Make the screen compare per-member facts, not array order (one screen reported a false failure on split order). The screen counts as solver attempt 1 when the repo and ticket do not change afterwards.
 
 - **Solvable:** a strong solver (fresh agent, ticket + broken repo, no tests) passes at least once in K runs. If 0/K, read the failures: divergent interpretations mean the ticket is ambiguous (fix the ticket); valid fixes rejected mean tests over-fit (add an alt fix, loosen facts); same wrong fix repeatedly is a genuine difficulty (keep, it is a "real reason" failure Frist values).
-- **Not trivial:** if a cheap fast model passes K/K in under 10 minutes, harden: combine with a second bug on the same journey, move the cause one layer deeper, or switch to a logic-only feature removal.
-- **Target band:** pass rate strictly between 0 and 1 across solvers (SWE-smith-style training sets keep instances with mixed rollout outcomes; e.g. SWE-Master uses 3 to 12 rollouts, https://arxiv.org/abs/2602.03411, search summary). PROPEL calls this the "learnable frontier". https://arxiv.org/abs/2606.18284
+- **Not trivially marked:** no greppable marker, crash, or type error (see "Bad" in the taxonomy). Beyond that, solve speed is recorded, not gated, until staff say otherwise; hardening levers are above.
+- **Target band (only if staff ask for difficulty):** pass rate strictly between 0 and 1 across solvers (SWE-smith-style training sets keep instances with mixed rollout outcomes; e.g. SWE-Master uses 3 to 12 rollouts, https://arxiv.org/abs/2602.03411, search summary). PROPEL calls this the "learnable frontier". https://arxiv.org/abs/2606.18284
 - **Static predictors:** difficulty is mostly patch fragmentation and repo scale (AUC 0.863). https://arxiv.org/abs/2608.18280 . So a fix spread over 2 to 3 files on a big clone is harder than a one-liner, without any ambiguity cost.
-- **Hackathon budget:** K=2 solver runs in parallel, 30 minutes each, during review. SWE-smith found difficulty barely changed training value, so do not over-tune; just avoid the trivial and the unsolvable.
+- **Hackathon budget:** K=1 (the screen) by default; 2 Opus + 2 Fable only when staff say difficulty matters. SWE-smith found difficulty barely changed training value, so do not over-tune; just avoid the trivially marked and the unsolvable.
 
 ## Pipeline: one clone, many tasks
 
@@ -156,20 +156,23 @@ Serialized, once per clone (first 30 to 45 minutes after the clone is done):
 
 Per task, one sandbox per role (see "Isolation" in role-prompts.md; physical dirs plus canaries plus a transcript audit), with an information firewall:
 
-| Step | Agent | Sees | Never sees |
+Run order is `../SKILL.md` "Pipeline". The firewall, by role prompt number in `role-prompts.md`:
+
+| Prompt | Agent | Sees | Never sees |
 |---|---|---|---|
 | 1 | Bug author | original, catalog row, harness | tests |
 | 2 | Test author | ticket, heldout_hint, reference copy, harness | bug diff, broken repo |
 | 3 | Wrong-fix author | ticket, broken repo | tests, solution, reference |
-| 4 | Solvers (K=1 to 2) | ticket, broken repo | tests, solution, reference, internet |
-| 5 | Checker (mutation_bar + verify_task + isolation_check) | everything | (sends survivors back to step 2) |
-| 6 | Reviewer (playbook) + red-team (non-lazy-judges.md) | everything | |
+| 3b | Hack author | broken repo, grading commands, hidden test file names | solution, reference, test contents |
+| 5 | Solver screen (K=1 by default) | ticket, broken repo | tests, solution, reference, internet |
+| 4 | Checker (mutation_bar + verify_task + isolation_check) | everything | (sends survivors back to the test author) |
+| playbook | Reviewer + red-team (non-lazy-judges.md) | everything | |
 
-Steps 2, 3 and 4 can run concurrently right after step 1. Step 5 loops with step 2 until `MUTATION BAR: PASS`. Serialize: edits to the shared harness, merges to the main clone, submission, and anything that starts a dev server when the machine is small.
+Test author, wrong-fix author, hack author and solver screen run concurrently right after the bug author. The checker loops with the test author until `MUTATION BAR: PASS`. Serialize: edits to the shared harness, merges to the main clone, submission, and anything that starts a dev server when the machine is busy.
 
 **Resource budget (learned the hard way, Nov 14).** On a 10-core laptop, 9 helper agents plus 4 parallel mutation bars (each starting a backend, a Vite server and Chromium) pushed the load average to 60 to 100 and nearly crashed the machine. Port collisions with unrelated processes then made the harness exit 3, which an earlier mutation_bar counted as kills. Rules:
-- At most 2 helper agents that start servers at once; `nice -n 15` on installs, builds, test runs and mutation_bar; `--jobs 1` (one dev server and one browser) unless the machine is idle, never more than 2.
-- Check `uptime` before each batch and wait while the 1-minute load is above about 1.2x the core count.
+- Playbook "Machine limits" apply: 3 to 5 concurrent workers at most, counting every agent that boots a server, a browser or a mutation bar; keep the 1-minute load under 12; drop to 2 if it climbs. `nice -n 15` on installs, builds, test runs and mutation_bar; `--jobs 1` (one dev server and one browser) unless the machine is idle, never more than 2.
+- Check `uptime` before each batch and wait while the 1-minute load is 12 or more.
 - Give every concurrent run its own port range (`MB_PORT_BASE`, `--slot-base`); the harness must exit 3 on a busy port, and mutation_bar reports exit 3 as UNGRADED, never as a kill.
 - Solvers are cheap (1 to 2 minutes of tool time each on a single-file bug); hidden-test authors are the slow step (18 to 20 minutes each).
 

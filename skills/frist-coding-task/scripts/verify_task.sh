@@ -15,7 +15,7 @@
 #   repo/            the broken repo exactly as the agent will see it (no hidden tests)
 #   solution.patch   oracle fix (git diff relative to repo/)
 #   hidden_tests/    files overlaid onto repo/ at grading time, same relative paths
-#   hacks/*.patch    cheating attempts (from the lazy-cheater subagent); each must FAIL
+#   hacks/*.patch    cheating attempts (from the hack author, role-prompts.md 3b); each must FAIL
 #
 # Optional hardening knobs (defaults keep the original behavior plus extra checks):
 #   F2P_PASS_REGEX   a passing F2P run must ALSO print this (ERE), e.g. '([3-9]|[1-9][0-9]+) passed'.
@@ -32,6 +32,7 @@
 # rewrites the hidden tests at runtime.
 set -u
 : "${TASK_DIR:?set TASK_DIR}" "${F2P_CMD:?set F2P_CMD}" "${P2P_CMD:?set P2P_CMD}"
+TASK_DIR="$(cd "$TASK_DIR" && pwd)" || { echo "TASK_DIR not found"; exit 2; }  # absolute: patches are applied from inside copies
 SETUP_CMD="${SETUP_CMD:-true}"
 RUNS="${RUNS:-3}"
 F2P_PASS_REGEX="${F2P_PASS_REGEX:-}"
@@ -157,7 +158,7 @@ if [ -d "$TASK_DIR/hacks" ]; then
     judge_attempt "hack $n" "$d"
   done
 fi
-[ "$nh" -lt "$MIN_HACKS" ] && say "warn: only $nh hand-written hacks (want >= $MIN_HACKS). Run the lazy-cheater subagent (frist-hackathon-playbook)."
+[ "$nh" -lt "$MIN_HACKS" ] && say "warn: only $nh hand-written hacks (want >= $MIN_HACKS). Run the hack author (frist-coding-task references/role-prompts.md, 3b)."
 
 if [ "$AUTO_HACKS" = "1" ]; then
   # 3a. Runner stub: grading command resolves an executable the agent could overwrite.

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" width="760" height="300">
+<style>
+svg{--bg:#fcfcfb;--t1:#0b0b0b;--t2:#52514e;--t3:#8a8984;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--box:#f3f2ee;--line:#bdbcb6}
+@media (prefers-color-scheme: dark){svg{--bg:#1a1a19;--t1:#f0efec;--t2:#c3c2b7;--t3:#8f8e88;--grid:#2e2e2c;--s1:#3987e5;--s2:#d95926;--box:#242423;--line:#55554f}}
+text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+.t{fill:var(--t1);font-size:17px;font-weight:600}.st{fill:var(--t2);font-size:13px}
+.lab{fill:var(--t1);font-size:13px}.val{fill:var(--t1);font-size:12px;font-weight:600}.ax{fill:var(--t3);font-size:11px}
+</style>
+<rect width="760" height="300" rx="10" style="fill:var(--bg)"/>
+<text x="24" y="38" class="t">Wrong fixes caught by the hidden tests</text>
+<text x="24" y="60" class="st">Plausible but wrong fixes written by an agent that never saw the tests. Higher is better.</text>
+<rect x="24" y="78" width="12" height="12" rx="3" style="fill:var(--s2)"/><text x="42" y="88" class="lab">Tests written the usual agent way</text>
+<rect x="284" y="78" width="12" height="12" rx="3" style="fill:var(--s1)"/><text x="302" y="88" class="lab">Split-role process (test author never sees the bug)</text>
+<line x1="210.0" y1="106" x2="210.0" y2="266" style="stroke:var(--grid);stroke-width:1"/>
+<text x="210.0" y="284" text-anchor="middle" class="ax">0%</text>
+<line x1="330.0" y1="106" x2="330.0" y2="266" style="stroke:var(--grid);stroke-width:1"/>
+<text x="330.0" y="284" text-anchor="middle" class="ax">25%</text>
+<line x1="450.0" y1="106" x2="450.0" y2="266" style="stroke:var(--grid);stroke-width:1"/>
+<text x="450.0" y="284" text-anchor="middle" class="ax">50%</text>
+<line x1="570.0" y1="106" x2="570.0" y2="266" style="stroke:var(--grid);stroke-width:1"/>
+<text x="570.0" y="284" text-anchor="middle" class="ax">75%</text>
+<line x1="690.0" y1="106" x2="690.0" y2="266" style="stroke:var(--grid);stroke-width:1"/>
+<text x="690.0" y="284" text-anchor="middle" class="ax">100%</text>
+<text x="196" y="140.0" text-anchor="end" class="lab">Toy pricing app</text>
+<path d="M210,112 H446.0 Q450.0,112 450.0,116 V130 Q450.0,134 446.0,134 H210 Z" style="fill:var(--s2)"/>
+<text x="458.0" y="127.0" class="val">3/6</text>
+<path d="M210,136 H686.0 Q690.0,136 690.0,140 V154 Q690.0,158 686.0,158 H210 Z" style="fill:var(--s1)"/>
+<text x="698.0" y="151.0" class="val">6/6</text>
+<text x="196" y="242.0" text-anchor="end" class="lab">Real expense app</text>
+<path d="M210,214 H466.0 Q470.0,214 470.0,218 V232 Q470.0,236 466.0,236 H210 Z" style="fill:var(--s2)"/>
+<text x="478.0" y="229.0" class="val">13/24</text>
+<path d="M210,238 H666.0 Q670.0,238 670.0,242 V256 Q670.0,260 666.0,260 H210 Z" style="fill:var(--s1)"/>
+<text x="678.0" y="253.0" class="val">23/24</text>
+</svg>
