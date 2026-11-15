@@ -52,7 +52,7 @@ While it runs: the orchestrator reads Frist's task template and example end to e
 
 ## 10:20 Triage and BOARD.md
 
-`frist-clone-tickets` section 2: size each ticket, list files and hot-file flags, order dependencies first, then S, M, L. Group same-component tickets into one worker. One integrator worker for anything needing a dependency or migration.
+`frist-clone-tickets` section 2: size each ticket, list files and hot-file flags, order dependencies first, then S, M, L. Do not group tickets per worker (own-file layout merged with 0 conflicts in the dry run). One integrator worker for anything needing a dependency or migration.
 
 ## 10:25 Dispatch the first ticket batch
 
