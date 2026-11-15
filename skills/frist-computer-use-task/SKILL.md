@@ -70,6 +70,18 @@ Final data: X1-X4, X1b, X2b (two apps, 12 to 20 checks), 2 Opus 5.5 + 2 Fable 5.
 - Verdict (re-checked under screenshot-only conditions Nov 15, unchanged): computer-use tasks are 100 pts. Ship correct, verifiable tasks and accept 4/4; one hardening round at most, then move the time to coding tasks. Never make a task hard through clunky UI; every miss so far, text or pixel probe, was a UI slip, and reviewers reject UI-friction difficulty.
 - Probe runner lessons (fixed in `examples/hard/`): give each attempt a fresh work dir (an old one leaks the last solver's scripts); refuse to boot on a busy port, since a stale server from a killed run silently hands the next solver another run's state; on macOS `killpg` on a bun/vite group can raise EPERM, so `world.py` falls back to signaling each member.
 
+### Combinatorial optimum round (Nov 15)
+
+FristWorld's hardest family (all-in cost where the greedy pick is wrong: "Prince George flight together, cheapest total" 0/24) rebuilt on Tidewell + Quillmail in `~/Hackathons-local/frist/cu-optimum/`. The owner's email states every rule; wholesaler quote emails give unit prices, price breaks, MOQs, shipping with free-shipping thresholds and coupons with goods thresholds and codes, plus 2 expired offers. The agent replies to each chosen quote (items, quantities, code) and edits stock, cost price and supplier in Tidewell. The offline audit (`harness/offline_audit.py`) proves one optimum and that greedy-unit, greedy-line, ignore shipping, ignore coupon, ignore MOQ, ignore price breaks, single supplier and each expired offer all reach a different end state.
+
+| Version | Space | Checks | Opus 5.5 screenshot-only | Minutes | Actions |
+|---|---|---|---|---|---|
+| v1: 3 products x 3 wholesalers | 27 | 19 | 2/2 | 2.2, 2.5 | 79, 76 |
+| v2: 5 products x 4 wholesalers, coupled thresholds | 768 feasible | 25 | 2/2 | 3.5, 3.5 | 100, 98 |
+
+- Every run first tried to write an itertools brute force (the gate denied it), then reasoned the optimum out correctly, rejected both expired offers by date and quoted the coupon code. A Rs 900 to 1,200 margin did not trip it.
+- Lesson: when every number sits in a few emails a model can read in full, an optimum over hundreds of combinations is arithmetic, and Opus does it. FristWorld's 0/24 tasks probably bite because the cost parts are spread across search results, fare pages and checkout steps that must be found and remembered. That is an exploration problem, not an arithmetic one. Our world has no app with that shape, so the family did not move into the learnable band here.
+
 ### Probe like Frist (screenshot-only)
 
 Frist's FristWorld agent acts from pixels: one screenshot per turn, `mouse_click(x, y)`, keyboard, up to 400 model calls. The Nov 14 probe let solvers write Playwright and read DOM text, so it was easier. To match Frist, use `examples/hard/cu_screen.py` + `probe_screen.py`:
