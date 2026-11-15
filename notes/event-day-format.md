@@ -37,3 +37,7 @@ Condensed guide: [CODING-GUIDE.md](CODING-GUIDE.md). Key points:
 - Staff: a task that is easy to reward-hack is rejected (TaskCheck has a model try to pass the tests without building the feature).
 - The workspace Claude Code is capped at 200k context. Keep evidence reads narrow (grep or python extracts), push big reads into subagents, and keep a notes file in the workspace so compaction doesn't lose the plan.
 - Coding: only 1 active claim at a time ("Hold up to 4 claims (1 active)"). Frist auto-assigns clone tickets to idle participants.
+- Workspaces can be rebuilt from scratch (lost uncommitted drafts and /tmp): commit to /workspace/gym after every step.
+- A Frist UserPromptSubmit hook can reject all prompts with "Workspace is saving or activity is uncertain"; don't force-close workspace tabs mid-save, keep one viewer per workspace, escalate to staff if it persists.
+- Visual-bug tasks: the App tab preview needed relative redirects and SameSite=None cookies to work through the gateway; screenshots are pasted into the Claude terminal (Files tab is read-only). Local browsers are blocked by an operator hook; TaskCheck runs browser tests in its own Chromium.
+- Codex in workspaces returned 503; probe with Opus only.
