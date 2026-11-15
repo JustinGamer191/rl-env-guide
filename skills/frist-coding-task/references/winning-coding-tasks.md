@@ -138,6 +138,24 @@ How the solvers won, read from their transcripts:
 
 So on a clone this size, planting did not reach a mixed solve rate with a fair ticket. That is why the playbook's difficulty gate records the screen and submits anyway. If staff or a rejection say difficulty matters, what is left, untested here: scale (a bigger clone where the relevant code does not fit in one read), fragmentation across many files the noun-grep does not reach (aim for 8+ edits in 5+ files), UI-heavy logic-only feature removals whose details only show when the page is driven, and runtime-only behaviour (state across reloads, live updates between two sessions, pagination with more rows than one page). Screen every candidate with ONE Opus run (below) and record the result; it does not decide whether the task ships.
 
+### Large codebase round (Nov 15 night): size alone did NOT make tasks hard
+
+Karakeep (github.com/karakeep-app/karakeep, shallow clone in `~/Hackathons-local/frist/large-app/`) is about 160k lines of TS (web 50k, tRPC backend 33k, mobile 24k, workers 13k, shared 11k): Next.js + tRPC + Drizzle/SQLite, with 558 green vitest API tests that run on an in-memory DB in 8 s. `pnpm install --filter` (trpc + web only) installed it in 30 s. I planted three fair bugs, each quiet (typecheck, lint, format and all 558 tests still green). Each got one headless Opus 5.5 screen (ticket in the prompt, cwd = broken repo); all transcript audits were CLEAN:
+
+| Plant (lever) | Opus screen |
+|---|---|
+| Runtime ordering: the oldest-first ORDER BY tie-break was flipped to `asc(id)` while the cursor still assumes `desc(id)`. Bookmarks are only skipped or repeated when more of them share a save second than fit on one page | solved, 1.8 min |
+| Fragmented: the blank-title fallback was lost at 4 sites in 4 files (3 SQL row mappers, plus a shared helper reached through the public list), dressed as a `?.trim() \|\|` to `??` refactor | solved, 3.7 min |
+| Deep shared recursion: the smart-list loop guard mutates one shared visited set instead of copying it per branch, so the second branch that reaches the same nested list gets nothing | solved, 1.9 min |
+
+None failed or took over 10 minutes, so no extra runs were made. What the transcripts show:
+1. **On a big repo they do not read everything, and they do not need to.** They turn the symptom into a guess about what the faulty code looks like and grep for that shape, not for ticket nouns. The blank-title solver's FIRST call grepped `title ??`; the pagination solver grepped `sortOrder|cursor`; the smart-list solver grepped `visitedListIds` on its third call.
+2. **A fair ticket names the kind of bug.** "Skipped or repeated across pages when many share a save time", "an empty title must behave like no title" and "two lists built on the same list" each point at one well-known bug shape (cursor tie-break, `??` vs `||`, a shared visited set). Fairness makes us state every tested rule, and that statement gives the shape away.
+3. **A fast in-process test suite helps the solver.** Every solver wrote a vitest repro within its first few calls (in-memory DB, seconds per run). A runtime-only symptom stays easy when 10 lines of test can rebuild that state.
+4. **Spreading the cause over files that each have their own surface does not slow them.** The ticket had to list the 4 surfaces, and grep reaches each one in one hop. The site behind a shared helper (public list to `getBookmarkTitle`) was found by its function name.
+
+So "large" (160k lines) is not enough on its own. Size only helps when the symptom does not give away the code shape. Untried so far: symptoms that only reproduce through a real browser or a worker process (no in-process test path); causes in config, generated code or migration SQL instead of TS; two plants where fixing the obvious one hides the second. If staff do not ask for difficulty, ship tasks like these: they are fair and quiet, and planting plus screening took about 30 minutes each on a repo with a fast API test suite.
+
 ## Difficulty calibration
 
 - **Screen (record, do not block).** Right after the bug author finishes, run one headless Opus solver on the ticket + broken repo (command in `../SKILL.md` "Pipeline" step 2) and grade it with the private `screen_check.sh` the bug author writes (one line per planted cause, FIXED/BROKEN). It runs in parallel with the test, wrong-fix and hack authors. Write the result on BOARD.md and submit correct, well-tested tasks even when Opus solves them; only when staff or a rejection say difficulty matters does a quick solve mean harden first. Make the screen compare per-member facts, not array order (one screen reported a false failure on split order). The screen counts as solver attempt 1 when the repo and ticket do not change afterwards.
