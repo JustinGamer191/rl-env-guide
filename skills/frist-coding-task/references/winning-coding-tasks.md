@@ -156,6 +156,29 @@ None failed or took over 10 minutes, so no extra runs were made. What the transc
 
 So "large" (160k lines) is not enough on its own. Size only helps when the symptom does not give away the code shape. Untried so far: symptoms that only reproduce through a real browser or a worker process (no in-process test path); causes in config, generated code or migration SQL instead of TS; two plants where fixing the obvious one hides the second. If staff do not ask for difficulty, ship tasks like these: they are fair and quiet, and planting plus screening took about 30 minutes each on a repo with a fast API test suite.
 
+### Chain restoration round (Nov 15 night): depth 8 did NOT make it hard either
+
+I tested recipe C1 from the playbook's making-tasks-hard.md on the same Karakeep repo, in `~/Hackathons-local/frist/chain-task/`. The flow was collaborative lists, in 8 dependent steps: invite by email; the owner's Manage collaborators dialog; the invitee's Pending invitations card; accept, decline and revoke; the shared list showing up with its role and Has collaborators flag; reading it with the owner's private state hidden; role permissions; and role change, remove and leave, where that person's bookmarks leave with them.
+
+- **d4:** the logic of steps 1 to 4 was removed.
+- **d8:** the logic of all 8 steps was removed, across 4 model files: invitation bodies, the collaborator branch of the list loader, shared-list lookup, privacy hiding, the collaborator-aware filters, the role tables, and the membership mutations.
+- **Both:** quiet (tsc, oxlint, oxfmt and the 472 visible tests stayed green). The ticket was the same for both: one Frist-style "half-built" feature listing every rule and exact error message. The screen was 561 tests: the original's 87 collaboration tests plus an end-to-end journey. The original passed it 3 times.
+
+| Variant | Opus 5.5 screen | Screen result |
+|---|---|---|
+| d4 | 3.0 min, $1.04 | 560/561. The one miss was our ticket's fault: it said hidden emails are "empty" and the solver returned `""` instead of `null` |
+| d8 | 4.2 min, $1.32, 24 tool calls | 561/561 |
+
+Both transcript audits were CLEAN. d8 was solved in under 10 minutes, so I made no extra runs. How it went:
+1. One grep of the feature nouns (`collaborat|invitation`) listed every masked file. The solver then read the 4 model files in full (about 3,000 lines) in 10 calls, before editing anything.
+2. On a missing feature, the half-built code is where it starts. Stub bodies, owner-only branches and the schema (the membership cascade column) show where each rule goes. The full ticket then supplies every rule. The cross-step trap (pass the membership id so leaving removes that person's bookmarks) was found by reading the schema.
+3. The solver wrote one end-to-end vitest over the whole journey, fixed what it showed, and deleted it. A fast in-memory test suite makes re-walking the chain cheap, so effort does not fall off with depth the way ProgramDistill reports for browser journeys.
+4. Ticket lessons:
+   - Say `null`, not "empty".
+   - State both errors for adding someone else's bookmark: one they cannot see gives "Bookmark not found"; one they can see but do not own gives "User is not allowed to access resource".
+
+So depth alone does not make it hard when every step lives in the API layer, one noun-grep finds every site, and a fast test suite can replay the whole chain. ProgramDistill's drop came from browser-journey replay, where re-walking is slow. To get C1's effect, put the chain's state across layers that have no in-process test path (UI state carried between pages, a worker, a reload), not in more server functions.
+
 ## Difficulty calibration
 
 - **Screen (record, do not block).** Right after the bug author finishes, run one headless Opus solver on the ticket + broken repo (command in `../SKILL.md` "Pipeline" step 2) and grade it with the private `screen_check.sh` the bug author writes (one line per planted cause, FIXED/BROKEN). It runs in parallel with the test, wrong-fix and hack authors. Write the result on BOARD.md and submit correct, well-tested tasks even when Opus solves them; only when staff or a rejection say difficulty matters does a quick solve mean harden first. Make the screen compare per-member facts, not array order (one screen reported a false failure on split order). The screen counts as solver attempt 1 when the repo and ticket do not change afterwards.

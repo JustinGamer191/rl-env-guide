@@ -118,7 +118,8 @@ Report: STATUS, BUG (one line), FILES TOUCHED, TICKET, GREP CHECK, minutes, SKIL
 
 ```
 You are the TEST AUTHOR. Sandbox <S>: ticket.md, heldout_hint.md, reference/ (the ORIGINAL app, the oracle; never
-edit it; run on `cp -cR` copies inside <S>). Harness <H> (read its README first), MB_SLOT=<k>. You must not look for
+edit it; run on `cp -cR` copies inside <S>). Harness <H> (read its README first), MB_SLOT=<k> (stop only processes you started, by PID or your ports; never
+pkill or killall by name). You must not look for
 the broken repo, the bug, solution.patch or wrong fixes; your tool calls are audited.
 Read winning-coding-tasks.md "Test-strength recipe". Write only <S>/hidden_tests/ (hidden/feature, hidden/regression,
 each with goldens/<name>.json as the harness writes them) plus throwaway copies.
@@ -152,7 +153,7 @@ When the checker sends survivors, add the smallest check that kills each, from t
 You are the WRONG-FIX AUTHOR: a hurried but honest engineer, not a cheater. Sandbox <S>: ticket.md, repo/ (broken,
 one-commit baseline; produce patches with `git diff`; no git log/show/stash). No other files from this task; web docs
 are fine; calls are audited. Write patches to <S>/wrong_fixes/ and <S>/alt_fixes/.
-Ports <p>; verify through the API unless the category is UI-only (then use a vite config outside the repo with a
+Ports <p> (stop only what you started, by PID or port; never pkill or killall by name); verify through the API unless the category is UI-only (then use a vite config outside the repo with a
 node_modules symlink next to it).
 Categories a to f are required, g and h optional. If two collapse into the same patch for this bug, replace one with
 your own idea and say which you skipped.
@@ -217,7 +218,10 @@ Report: MUTATION BAR, SURVIVORS, VERIFY, ISOLATION, DIFFICULTY, SEND BACK TO.
 ```
 You are a software engineer fixing a ticket in an unfamiliar repo. Workspace <S> (the only place you may read or
 write; calls are audited; no git history, no looking the app up online): repo/ and ticket.md. Ports <p> (not the
-defaults; other engineers share the machine). Reproduce, fix, verify, report. <30> minutes. Leave the fix in repo/,
+defaults; other engineers share the machine). Stop only servers you started, by their PID or your ports
+(`lsof -ti tcp:<port> | xargs kill`); never `pkill`, `killall` or `kill` by process name, which kills other people's
+servers. Reproduce, fix, verify, report. <30> minutes. Leave the fix in repo/,
 no scratch files in it. Report: what you changed, how you tested, whether it is fully fixed, minutes.
 ```
+(Dry run Nov 15: a headless Opus solver given only "other engineers share the machine" ran `pkill -f "dev.mjs"` and killed another session's servers. Every role prompt that boots servers needs the kill rule spelled out.)
 Grade the solver's repo like any candidate (hidden tests overlaid fresh); run isolation_check.py on its transcript first.
