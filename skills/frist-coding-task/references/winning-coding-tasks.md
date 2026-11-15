@@ -179,6 +179,25 @@ Both transcript audits were CLEAN. d8 was solved in under 10 minutes, so I made 
 
 So depth alone does not make it hard when every step lives in the API layer, one noun-grep finds every site, and a fast test suite can replay the whole chain. ProgramDistill's drop came from browser-journey replay, where re-walking is slow. To get C1's effect, put the chain's state across layers that have no in-process test path (UI state carried between pages, a worker, a reload), not in more server functions.
 
+### Browser-only chain round (Nov 15 night): client-side state did NOT make it hard either
+
+I tested the hypothesis from the chain round on the Quillstack clone (React/TS/Vite, about 2,700 lines), in `~/Hackathons-local/frist/browser-chain/`. I built a 7-step chain whose state lives only in the browser, then removed all of it: (1) the URL holds the view (project key, search, status, priority, labels, assignee, sort), restored on reload and pasted links, and a URL without a project gets one written in by replace; (2) the Board/List tabs and "My issues" carry the query; (3) Back/Forward, where each discrete change pushes and typing replaces; (4) a multi-select shared by Board and List, which drops issues a filter hides; (5) bulk Set status and Set priority with an Undo toast that restores each issue's own old value on the server; (6) saved views in localStorage, listed in the sidebar, where saving a name again replaces it; (7) delete a view. The backend stayed the same.
+
+- **Broken copy:** filters held in memory (so they still work on the page), and the checkboxes and Save view button left inert. The repo had no tests, so the only check was a real browser. Typecheck stayed clean, and all 28 existing journeys stayed green.
+- **Ticket:** a Frist "half-built" ticket that lists every URL parameter, label, toast text and history rule.
+- **Grader:** 12 held-out Playwright feature journeys plus 28 regression journeys, with a fresh database per journey. The reference passed 40/40 three times. The broken copy passed 28/40 three times (every feature journey failed, every regression passed).
+
+| Solver | Result |
+|---|---|
+| Opus 5.5, one headless run (Playwright allowed) | solved 40/40 in 6.8 min wall, $1.58, 29 turns, audit CLEAN |
+
+It was solved in under 10 minutes, so I made no extra runs. How it went:
+1. Two `cat` calls read the whole frontend. The solver then wrote the entire feature in 5 edit calls, before running anything.
+2. It booted the app on its ports and wrote one Playwright script that walked the whole chain (filters, reload, tabs, Back, selection, bulk with Undo, saved views). It found the one real snag by screenshot: the precompiled CSS ignores new Tailwind classes, so the bar rendered off-screen. It fixed that with inline styles and reran.
+3. A browser replay of a 7-step journey takes about 30 seconds when the solver scripts it. That makes it nearly as cheap as an in-memory test, so ProgramDistill's slow-replay effect never shows up. Their agents walk the browser click by click, and ours can script it.
+
+So client-only state plus browser-only verification is not enough on a small app with a fully specified ticket. The ticket has to list every rule to be fair, and a solver who reads all the code turns that list into code in one pass. What is left to try: a solver limited to pixel actions (as in FristWorld), or a large generated frontend where the state plumbing cannot be read in two calls.
+
 ## Difficulty calibration
 
 - **Screen (record, do not block).** Right after the bug author finishes, run one headless Opus solver on the ticket + broken repo (command in `../SKILL.md` "Pipeline" step 2) and grade it with the private `screen_check.sh` the bug author writes (one line per planted cause, FIXED/BROKEN). It runs in parallel with the test, wrong-fix and hack authors. Write the result on BOARD.md and submit correct, well-tested tasks even when Opus solves them; only when staff or a rejection say difficulty matters does a quick solve mean harden first. Make the screen compare per-member facts, not array order (one screen reported a false failure on split order). The screen counts as solver attempt 1 when the repo and ticket do not change afterwards.
