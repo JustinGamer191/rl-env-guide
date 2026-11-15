@@ -198,6 +198,29 @@ It was solved in under 10 minutes, so I made no extra runs. How it went:
 
 So client-only state plus browser-only verification is not enough on a small app with a fully specified ticket. The ticket has to list every rule to be fair, and a solver who reads all the code turns that list into code in one pass. What is left to try: a solver limited to pixel actions (as in FristWorld), or a large generated frontend where the state plumbing cannot be read in two calls.
 
+### Tempting template round (Nov 15 night): a 90%-right page for another record did NOT make it hard
+
+I tested recipe C3 (Frist's OpenTable photos trap) combined with C2 (many readers, per-surface rules) on the Tidewell POS clone, in `~/Hackathons-local/frist/template-task/`. Feature: a product spec page at `/inventory/<SKU>`. The broken repo shipped a hand-built page for one product (SKU-KNIT-07) that was about 90% generic, with traps that are right for that product only:
+- it looked the product up as the first `search` result, which picks the wrong product when another SKU, name or barcode contains the SKU;
+- its effect had `[]` deps, so moving from one product page to another kept the old product;
+- it used a hardcoded `GST 12%` and `* 1.12`, and always showed the low-stock badge;
+- it always rendered the Size and Colour rows and passed null barcode and supplier through raw;
+- it used `inr()`, which prints `₹-100.00` instead of `-₹100.00`;
+- its sales figures were literal, so a sales API had to be built.
+
+The ticket stated every rule: exact SKU, null vs empty, Exempt at GST 0, Indian grouping, the 5-row cap, merged order lines, price at sale, store-time dates, more than 50 products, reload, header search between pages, and the API shape. The private grader replays 27 feature journeys at the default clock, plus 1 at a late clock (02:30Z, which is still the day before in New York), plus 8 regression journeys. It covers about 35 products: all 14 seed products, held-out edge products (null and empty fields, stock 0, 1, 9, 10, negative, GST 0, 2.5, 18, 28, a zero price, negative margin, a ₹1,25,000 price, a long name), a prefix-SKU clash set, 52 fillers, a UI edit, a Billing UI sale and 7-order history. It compares page lines and API facts with goldens recorded on the working app. The reference passed 3 times; the broken repo failed 27 of 27 feature journeys, with regression green.
+
+| Run | Result |
+|---|---|
+| Opus 5.5 screen | solved, 3.7 min, $0.77, 16 tool calls; 36/36 journeys, audit CLEAN |
+
+It was under 10 minutes, so I made no extra runs. How it won:
+1. Call 2 `cat` the whole backend, the template page, the router and the formatter at once. Call 3 read Layout, Inventory and the store. The repo is about 3,000 lines, so the template's assumptions were all in context next to the ticket.
+2. It did not copy the template. It rewrote the page body against the ticket's table, row by row. Each trap sits on a line the ticket names a rule for ("exactly", "null or empty", "minus sign before the ₹", "while a product page is open"), so it read like a checklist.
+3. It built an exact-SKU endpoint (`findUnique`) instead of reusing search, put `sku` in the effect deps, then ran a Playwright script with 55 extra products, an odd SKU, GST 0 and 2.5, and a negative margin before reporting.
+
+Lesson: the template trap bites in Frist's task because their ticket said only "show its details". Which fields exist, and how they degrade, had to come from the stored page and catalog data. Once fairness makes us spell out every format and branch, the template stops being a temptation: the ticket is the spec and the template is just scaffolding. To keep C3's effect, the checked facts would have to be visible on the original but not enumerated in the ticket (Frist's own style). That only works if held-out records show them unambiguously, and in our setup we chose to state every rule instead.
+
 ## Difficulty calibration
 
 - **Screen (record, do not block).** Right after the bug author finishes, run one headless Opus solver on the ticket + broken repo (command in `../SKILL.md` "Pipeline" step 2) and grade it with the private `screen_check.sh` the bug author writes (one line per planted cause, FIXED/BROKEN). It runs in parallel with the test, wrong-fix and hack authors. Write the result on BOARD.md and submit correct, well-tested tasks even when Opus solves them; only when staff or a rejection say difficulty matters does a quick solve mean harden first. Make the screen compare per-member facts, not array order (one screen reported a false failure on split order). The screen counts as solver attempt 1 when the repo and ticket do not change afterwards.

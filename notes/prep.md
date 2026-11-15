@@ -54,6 +54,7 @@ Submission and scoring
 Coding tasks (500)
 - What are the predefined categories? Is there an example accepted task?
 - Is task acceptance gated on difficulty? Which model do you measure solve rate against, and what rate do you want? (Opus 5.5 and Fable 5.2 solved every task we built in rehearsal in 1 to 4 min.)
+- Must a coding ticket list every fact the tests check, or can it say "make it behave like the working app" and grade facts read off the working site (as your OpenTable task did)? This decides how hard our tasks can be.
 - Teams of 2: do both teammates' points combine on the leaderboard, and are prizes per person (two flights and two Ray-Bans for a winning pair) or one per team? Does each person still need to finish their own app before pairing?
 - Required pieces: problem statement, hidden tests, reference solution, docker image? Test framework constraints?
 - Do bug-injection tasks count, or only feature tasks? Any minimum difficulty (for example a model must fail it)?

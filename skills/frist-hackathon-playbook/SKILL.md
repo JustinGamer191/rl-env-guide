@@ -93,6 +93,8 @@ Overnight Nov 15 we then tried every hardening lever we could build fairly, each
 
 Why: with fair tickets (every checked rule stated), Opus turns the rule list into code in one pass, then verifies with fast tests or one scripted Playwright walk. Frist's lower solve rates (Opus 20-min median, 36 to 59% on CU) most likely come from their own large generated clones and their harness, not from tricks we can plant. So at the event: build tasks on Frist's actual clones (they bring their own size and mess), keep them fair and well tested, ship fast, and let Frist's review tell us about difficulty.
 
+The tempting-template round (3.7 min solve) points at the real gap: Frist's own OpenTable ticket said little more than "show its details" and graded many facts read off the working site, while our fairness bar states every checked rule in the ticket, which hands the solver the checklist. If Frist accepts "match the working app" tickets that do not enumerate every fact, tasks get much harder without becoming unfair. Ask staff exactly that (prep.md question list).
+
 So difficulty is a question for staff, not a gate we set:
 - **Screen every candidate with one Opus run** (coding: frist-coding-task "Pipeline" step 2; CU: frist-computer-use-task step 7) and write the result on BOARD.md.
 - **Submit correct, well-tested tasks even if Opus solves them.** A held task is worth 0. Calibrate from Frist's first review and staff answers.
