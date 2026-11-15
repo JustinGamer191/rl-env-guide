@@ -221,6 +221,29 @@ It was under 10 minutes, so I made no extra runs. How it won:
 
 Lesson: the template trap bites in Frist's task because their ticket said only "show its details". Which fields exist, and how they degrade, had to come from the stored page and catalog data. Once fairness makes us spell out every format and branch, the template stops being a temptation: the ticket is the spec and the template is just scaffolding. To keep C3's effect, the checked facts would have to be visible on the original but not enumerated in the ticket (Frist's own style). That only works if held-out records show them unambiguously, and in our setup we chose to state every rule instead.
 
+### Terse ticket round (Nov 15 night): a Frist-style short ticket did NOT make a fair task hard
+
+Same task as the template round, in `~/Hackathons-local/frist/terse-ticket/`. The ticket (`terse/ticket.md`) is Frist-shaped: Page/Type/Size, three sentences, one example JSON for the scanner API, and 5 checkboxes ("every line on the page is right for any product: any stock level, GST rate, price, and missing optional fields", "the existing page is the design; format money, GST and dates the way the app already does"). It gives no formats, edge rules, caps or empty-state wording.
+
+Fairness audit method (`terse-ticket/fairness-audit.txt`, about 20 minutes):
+1. List every fact the goldens compare (44 here), not every test.
+2. For each, write where a careful engineer learns it: the template page, `format.ts`, constants (`LOW = 10`, the low-stock endpoint's `stock < 10`), the schema (`sku @unique`, `OrderItem.price`), server conventions (`{ error: 'Product not found' }`), the seed data, or the ticket. If there is no source, mark it UNINFERABLE.
+3. Drop or normalize each uninferable fact in the shared fact recorder, using product truth from an existing API rather than the solver's endpoint. For example, skip the Barcode line when the barcode is blank, accept `₹-` or `-₹`, take "No sales yet" or zero figures, and compare only the newest 3 recent rows. Add one replacement check: no line may show null, undefined, NaN or Infinity.
+4. Validate the relaxed grader with an alternative implementation that makes the other plausible choice on every uninferable fact. It must pass, the reference must pass 3 times, and the broken repo must fail.
+
+Result: 29 facts inferable, 15 uninferable (8 dropped, 7 relaxed). The alt implementation passed 36/36, the reference passed 3/3, and broken failed 0/27 and 0/1 with regressions 8/8.
+
+| Run | Fair grader | Original strict grader | Time, cost |
+|---|---|---|---|
+| Opus 5.5 t1 | solved 36/36, audit CLEAN | 15/27 feature (late and regression pass): every failure is an uninferable fact | 4.8 min, $0.98 |
+| Opus 5.5 t2 | solved 36/36, audit CLEAN | 17/27 feature (late and regression pass): every failure is an uninferable fact | 5.3 min, $0.99 |
+
+Both solved, so I ran no Fable. Both got all 29 inferable facts right. On the uninferable ones, both runs chose the same things independently: a dash placeholder for blank fields, zero figures plus "Last sold: Never", "GST 0%: ₹0.00", no percentage at price 0, and more than 5 recent rows. They also happened to match the reference on "Out of stock", "In stock: N units" and "-₹".
+
+Lesson: a terse ticket makes the task "hard" only when the grader checks facts the solver must guess, and that is the ambiguity rejection, not difficulty. Once the grader checks only inferable facts, Opus reads the template, the formatter and the constants and finishes in about 5 minutes, only about 1.5 minutes slower than with the full rule table. The terse format is still worth using, because it is Frist's own and it is shorter to write. Run the audit and the alt-implementation check every time, and do not expect it to buy difficulty. Frist's OpenTable task could grade "facts read off the working site" only because a real original site existed to infer them from. On a clone whose only source is our own repo, those facts become guesses.
+
+Question for Frist staff (ask at kickoff): "When a ticket is short like your OpenTable example, may hidden tests check details a solver can only see on the original site, such as empty-field wording, list caps and zero-state text? Or must every checked fact be derivable from the repo and the ticket? And will a task that frontier models solve in about 5 minutes still be accepted?"
+
 ## Difficulty calibration
 
 - **Screen (record, do not block).** Right after the bug author finishes, run one headless Opus solver on the ticket + broken repo (command in `../SKILL.md` "Pipeline" step 2) and grade it with the private `screen_check.sh` the bug author writes (one line per planted cause, FIXED/BROKEN). It runs in parallel with the test, wrong-fix and hack authors. Write the result on BOARD.md and submit correct, well-tested tasks even when Opus solves them; only when staff or a rejection say difficulty matters does a quick solve mean harden first. Make the screen compare per-member facts, not array order (one screen reported a false failure on split order). The screen counts as solver attempt 1 when the repo and ticket do not change afterwards.
