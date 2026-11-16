@@ -8,26 +8,26 @@ text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,san
 </style>
 <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--line)"/></marker></defs>
 <rect width="900" height="330" rx="10" style="fill:var(--bg)"/>
-<text x="24" y="38" class="t">How the day runs</text>
+<text x="24" y="38" class="t">How the pipeline runs</text>
 <text x="24" y="60" class="st">The main session orchestrates; workers do the work in their own git worktrees; nobody grades their own work.</text>
-<rect x="24" y="92" width="132" height="56" rx="8" style="fill:var(--box);stroke:var(--line);stroke-width:1"/><text x="90.0" y="118.0" text-anchor="middle" class="lab" style="font-weight:600">80% clone</text><text x="90.0" y="135.0" text-anchor="middle" class="ax">from Frist</text>
+<rect x="24" y="92" width="132" height="56" rx="8" style="fill:var(--box);stroke:var(--line);stroke-width:1"/><text x="90.0" y="118.0" text-anchor="middle" class="lab" style="font-weight:600">Base app</text><text x="90.0" y="135.0" text-anchor="middle" class="ax">repo or clone</text>
 <line x1="156" y1="120.0" x2="200" y2="120.0" style="stroke:var(--line);stroke-width:2" marker-end="url(#a)"/>
 <rect x="204" y="92" width="132" height="56" rx="8" style="fill:var(--box);stroke:var(--line);stroke-width:1"/><text x="270.0" y="118.0" text-anchor="middle" class="lab" style="font-weight:600">Ticket workers</text><text x="270.0" y="135.0" text-anchor="middle" class="ax">3 to 5 in parallel</text>
 <line x1="336" y1="120.0" x2="380" y2="120.0" style="stroke:var(--line);stroke-width:2" marker-end="url(#a)"/>
 <rect x="384" y="92" width="132" height="56" rx="8" style="fill:var(--box);stroke:var(--line);stroke-width:1"/><text x="450.0" y="118.0" text-anchor="middle" class="lab" style="font-weight:600">Fresh checker</text><text x="450.0" y="135.0" text-anchor="middle" class="ax">sees only the ticket</text>
 <line x1="516" y1="120.0" x2="560" y2="120.0" style="stroke:var(--line);stroke-width:2" marker-end="url(#a)"/>
-<rect x="564" y="92" width="132" height="56" rx="8" style="fill:var(--box);stroke:var(--line);stroke-width:1"/><text x="630.0" y="118.0" text-anchor="middle" class="lab" style="font-weight:600">Merge right away</text><text x="630.0" y="135.0" text-anchor="middle" class="ax">own-file layout</text>
+<rect x="564" y="92" width="132" height="56" rx="8" style="fill:var(--box);stroke:var(--line);stroke-width:1"/><text x="630.0" y="118.0" text-anchor="middle" class="lab" style="font-weight:600">Merge</text><text x="630.0" y="135.0" text-anchor="middle" class="ax">own-file layout</text>
 <line x1="696" y1="120.0" x2="740" y2="120.0" style="stroke:var(--line);stroke-width:2" marker-end="url(#a)"/>
-<rect x="744" y="92" width="132" height="56" rx="8" style="fill:var(--box);stroke:var(--s1);stroke-width:2"/><text x="810.0" y="118.0" text-anchor="middle" class="lab" style="font-weight:600">Finished clone</text><text x="810.0" y="135.0" text-anchor="middle" class="ax">10 pts per ticket</text>
+<rect x="744" y="92" width="132" height="56" rx="8" style="fill:var(--box);stroke:var(--s1);stroke-width:2"/><text x="810.0" y="118.0" text-anchor="middle" class="lab" style="font-weight:600">Finished app</text><text x="810.0" y="135.0" text-anchor="middle" class="ax">every ticket checked</text>
 <rect x="24" y="210" width="132" height="56" rx="8" style="fill:var(--box);stroke:var(--line);stroke-width:1"/><text x="90.0" y="236.0" text-anchor="middle" class="lab" style="font-weight:600">Bug author</text><text x="90.0" y="253.0" text-anchor="middle" class="ax">plants the bug</text>
 <line x1="156" y1="238.0" x2="200" y2="238.0" style="stroke:var(--line);stroke-width:2" marker-end="url(#a)"/>
 <rect x="204" y="210" width="132" height="56" rx="8" style="fill:var(--box);stroke:var(--line);stroke-width:1"/><text x="270.0" y="236.0" text-anchor="middle" class="lab" style="font-weight:600">Test author</text><text x="270.0" y="253.0" text-anchor="middle" class="ax">ticket + original only</text>
 <line x1="336" y1="238.0" x2="380" y2="238.0" style="stroke:var(--line);stroke-width:2" marker-end="url(#a)"/>
 <rect x="384" y="210" width="132" height="56" rx="8" style="fill:var(--box);stroke:var(--line);stroke-width:1"/><text x="450.0" y="236.0" text-anchor="middle" class="lab" style="font-weight:600">Wrong-fix author</text><text x="450.0" y="253.0" text-anchor="middle" class="ax">never sees tests</text>
 <line x1="516" y1="238.0" x2="560" y2="238.0" style="stroke:var(--line);stroke-width:2" marker-end="url(#a)"/>
-<rect x="564" y="210" width="132" height="56" rx="8" style="fill:var(--box);stroke:var(--line);stroke-width:1"/><text x="630.0" y="236.0" text-anchor="middle" class="lab" style="font-weight:600">Checker + scripts</text><text x="630.0" y="253.0" text-anchor="middle" class="ax">mutation bar, verify</text>
+<rect x="564" y="210" width="132" height="56" rx="8" style="fill:var(--box);stroke:var(--line);stroke-width:1"/><text x="630.0" y="236.0" text-anchor="middle" class="lab" style="font-weight:600">Checker</text><text x="630.0" y="253.0" text-anchor="middle" class="ax">+ mutation bar</text>
 <line x1="696" y1="238.0" x2="740" y2="238.0" style="stroke:var(--line);stroke-width:2" marker-end="url(#a)"/>
-<rect x="744" y="210" width="132" height="56" rx="8" style="fill:var(--box);stroke:var(--s2);stroke-width:2"/><text x="810.0" y="236.0" text-anchor="middle" class="lab" style="font-weight:600">Coding task</text><text x="810.0" y="253.0" text-anchor="middle" class="ax">500 pts if accepted</text>
+<rect x="744" y="210" width="132" height="56" rx="8" style="fill:var(--box);stroke:var(--s2);stroke-width:2"/><text x="810.0" y="236.0" text-anchor="middle" class="lab" style="font-weight:600">Coding task</text><text x="810.0" y="253.0" text-anchor="middle" class="ax">controls 0 and 1</text>
 <path d="M810,148 V166 H90 V206" style="fill:none;stroke:var(--line);stroke-width:2" marker-end="url(#a)"/>
 <text x="450.0" y="182" text-anchor="middle" class="ax">then build tasks on it (computer-use tasks follow the same split: verifier, oracle, adversaries)</text>
 <text x="24" y="310" class="ax">Isolation applies only to difficulty probes and to what the shipped task exposes. Our own agents use everything.</text>

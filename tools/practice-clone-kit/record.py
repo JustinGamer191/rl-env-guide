@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record a running web app the way Frist's pipeline does: per-step screenshot,
+"""Record a running web app the way recording-to-clone pipelines do: per-step screenshot,
 DOM snapshot, API traffic (HAR + simplified JSON) and the action taken.
 
 The output bundle (recordings/) is the ONLY thing a generator agent may see.

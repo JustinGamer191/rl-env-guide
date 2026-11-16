@@ -1,0 +1,131 @@
+---
+name: rl-coding-task
+description: Build trustworthy coding RL tasks (SWE-bench / SWE-smith style) on a working app or repo, using split-role subagents so nobody grades their own work. A bug author plants a bug or removes a feature, a test author writes hidden tests from the ticket and the working original only, a wrong-fix author writes plausible wrong fixes without seeing the tests, a hack author tries to reward-hack, and a checker runs the mutation bar (one mutation per acceptance criterion), controls (empty change 0, reference 1), leak checks and transcript isolation audits. Use this whenever the user says "make a coding task", "coding task with hidden tests", "inject a bug", "SWE task", "RL task from this repo", "harden a task", "reward hacking", asks why a task was rejected, or wants to check that hidden tests reject wrong fixes.
+---
+
+# Coding task
+
+A coding RL task is a repo in a broken or incomplete state, a ticket an agent reads, hidden tests that decide the reward, and a reference solution proving it is solvable. It is worth something only if the reward is trustworthy: solvable, not passed by doing nothing, not hackable, deterministic, clearly stated. Agents write weak tests and then pass them, so no agent grades its own work: the work is split across roles with an information firewall.
+
+**The target format wins.** If the tasks are for a platform or a training pipeline with its own template and categories, DISCOVERY.md must hold that template, the category list and an example before the first task. Map the pieces here (repo, ticket, hidden tests, oracle, metadata) onto its slots (`~/.claude/skills/rl-env-playbook/references/task-formats.md` shows how public formats name them).
+
+Depth: `references/building-coding-tasks.md` (bug-site catalog, bug taxonomy, ticket rules, test-strength recipe, results from our tests, rejection causes). Paste-ready prompts for every role: `references/role-prompts.md`.
+
+## A task package
+
+1. **Ticket.** A plain title; Context (2 to 3 sentences); acceptance criteria AC1..ACn (3 or more, user-visible behavior, the only place behavior is stated); Pins (every name the tests assert that the task introduces: visible text, test ids, routes, response fields, error strings). Never mention tests or grading; never pin file paths; never name the cause.
+2. **Hidden tests** that drive the app from outside: a unit or API lane, and a browser lane in a pinned headless Chromium. Browser tests run twice and a flaky one is a defect; wait for state, never for a fixed time.
+3. **Reference solution** that passes every hidden test.
+4. **One mutation per acceptance criterion**: a wrong version that breaks only that criterion. The tests must catch every one. More wrong fixes and auto mutants on top (the mutation bar below).
+5. **Controls**: the empty change scores 0, the reference scores 1.
+
+A serious grading pipeline then typically runs static checks, the controls, the mutations, a tests-match-ticket review, several frontier models with several attempts each (too easy if the top models mostly solve it), an inspection of failed attempts for unfair failures, and a shortcut attempt (a model tries to pass the tests without building the feature). Build so each of those passes before you ship.
+
+## Task shapes
+
+Common categories: resilience (retries, timeouts, partial failure), concurrency (races, ordering, idempotency), authorization and tenant isolation, schema migrations and data contracts, long-horizon features, visual and interaction bugs, full-stack bugs, performance regressions.
+
+Models are strong at CRUD, single-file features, boilerplate, textbook algorithms and cosmetic UI; never make those the hard part. Harder: state across many files and two services; concurrency, ordering, retries and time zones; system invariants; a root cause far from the symptom; quadratic behavior at scale. Prefer shapes whose two-sided check (base fails, reference passes) you can run locally; browser-lane tasks depend on the grader's browser image (playbook "Prefer task shapes you can check end to end locally").
+
+If the app lacks what a shape needs (a second service, a queue, more tenants, render counters), add it as a separate base change first, reviewed on its own, then build the task on top. On a serial line of tasks on one app, each task starts from the previous merged one.
+
+## Ticket format seen in published clone tasks (adapt to your target)
+
+Tasks remove a working feature or plant a bug in a working app; the original passes grading and the broken app fails. The prompt is a ticket with no file names and no cause:
+```
+# <title>
+**Page:** `<route>` · **Type:** feature|bug · **Size:** M
+## Description
+## Requested behavior
+- <bullets>
+## Acceptance criteria
+- [ ] <checkbox naming a concrete visible label, e.g. selecting "Photos">
+Start the dev server with `bun dev.mjs` (http://127.0.0.1:5173 ...). Chromium and Playwright are installed.
+```
+Grading replays browser journeys on held-out inputs plus many regression journeys (one published sample: 2 feature, 27 regression), so F2P = feature journeys and P2P = regression journeys. A good rubric scores: feature works, no regressions, reuses the app's existing names, labels, components and fallbacks, solver tested its work and reported truthfully. Design tasks so hardcoding the ticket's example fails on held-out inputs.
+
+## Task dir layout (what the scripts expect)
+
+`<ws>/<app>/tasks/<task-id>/`:
+- `repo/`: broken repo exactly as the solver sees it (no `.git`, or one squashed commit; no hidden tests, notes, backups).
+- `ticket.md`: the ticket.
+- `solution.patch`: oracle, broken -> original (`a/` `b/` paths, applies with `git apply` in `repo/`).
+- `hidden_tests/`: overlaid onto `repo/` at grading time (feature + regression journeys, goldens, the shared harness under `hidden/harness/`).
+- `wrong_fixes/*.patch`: plausible honest wrong fixes (must all fail), at least one per acceptance criterion. `alt_fixes/*.patch`: other valid fixes (must all pass).
+- `hacks/*.patch`: cheating attempts (must all fail).
+- `equivalent_mutants.txt`, `mutation_report.json`: checker outputs.
+- Private, never shipped: `BUG_NOTES.md`, `screen_check.sh`, `heldout_hint.md` (keep them in `<ws>/<app>/private/<task-id>/`).
+
+Rename to the target layout at packaging time.
+
+## Pipeline (orchestrator)
+
+Once per app, as soon as discovery is done:
+- **0a Catalog agent** (role-prompts 0a): 15 to 25 scored bug sites across feature areas, each tagged with a category.
+- **0b Harness agent** (role-prompts 0b), in parallel: one shared journey runner and fact recorder with `MB_SLOT` ports. Every task reuses it; this is the biggest throughput win.
+
+Per task, one sandbox per role under `<ws>/<app>/roles/<task-id>/<role>/` holding only that role's inputs (table in role-prompts "Isolation"). Give parallel tasks different feature areas and categories.
+1. **Bug author** (role-prompts 1): plants one bug or logic-only feature removal; writes `repo/`, `solution.patch`, `ticket.md`, `heldout_hint.md`, `BUG_NOTES.md`, `screen_check.sh`.
+2. **Difficulty probe** (about 3 minutes per attempt): one headless solver on ticket + broken repo only, graded by `screen_check.sh`. Run it in parallel with step 3. Command, from a solver sandbox holding only `ticket.md` and `repo/` (prompt = role-prompts 5):
+   ```bash
+   cd <solver sandbox> && nice -n 15 claude -p --model claude-opus-5-5 --permission-mode acceptEdits \
+     --output-format json --allowedTools Bash Read Write Edit --disallowedTools WebFetch WebSearch Skill Agent \
+     --disable-slash-commands --strict-mcp-config < <private>/solver_prompt.txt > <private>/screen.json
+   bash <private>/screen_check.sh <solver sandbox>/repo <port-base>
+   ```
+   Transcript: `~/.claude/projects/<sandbox path with every non-alphanumeric char replaced by ->/<session_id from screen.json>.jsonl`; audit it (Isolation below). Write "probe: solved in N min" or "probe: failed (why)" on BOARD.md. When difficulty gates acceptance, run 3 attempts and aim for a mixed result; harden before step 3 if all solve (playbook "Difficulty").
+3. In parallel: **test author** (role-prompts 2, ticket + heldout_hint + original only), **wrong-fix author** (role-prompts 3, ticket + broken repo only), **hack author** (role-prompts 3b). An agent writing cheat patches may be refused by a safety classifier (it was, twice, in our tests); if so, do not work around it: rely on verify_task.sh's built-in AUTO_HACKS and the reviewer, and set MIN_HACKS=0 for that task. AUTO_HACKS only has Python/pytest cheats today, so on a JS/Playwright task it exercises nothing; the reviewer must then try at least 3 cheats by hand (edit or skip a test, stub the runner, hardcode the ticket example). Budget the mutation bar: about 90 min for 44 candidates at --jobs 1 on a laptop, so trim auto mutants to the fix's lines.
+4. **Assemble** the task dir (layout above). Move the solver's patch into the alt fixes for grading (`alt_plus_solver/`).
+5. **Checker** (role-prompts 4): `mutation_bar.py`, then `verify_task.sh`, then the isolation results. Survivors go back to the test author (step 3) until `MUTATION BAR: PASS` and `VERIFY: PASS`.
+6. **Reviewer** (playbook "Reviewer subagent prompt") on this skill's checklist. Only PASS ships.
+
+Measured on a cold real app: catalog plus harness about 16 min, then about 60 min from finished app to three graded tasks when the machine is not overloaded. Hidden-test authors are the slow step (18 to 20 min).
+
+## Isolation step (evidence, not instructions)
+
+Our roles may use the web and docs. What isolation protects is (a) the role firewall, so tests are written without seeing the bug and wrong fixes without seeing the tests, and (b) solver probes, which must see only what the real solver sees.
+1. One directory per role holding only its allowed inputs (`cp -cR`).
+2. Unique canaries (`CNRY-<KIND>-<task>-<hex>`) in `BUG_NOTES.md`, the `solution.patch` preamble (text before the first `diff --git`), every hidden test and golden, and a first-line comment in the reference copy of each touched file. None in the broken repo.
+3. `chmod 000` the other copies of the answer (finished bug-author dirs, `tasks/`, `private/`) while a solver or wrong-fix author runs, where that does not block other workers. **This is a speed bump, not a wall:** a same-user agent with Bash can `chmod` it back, or read a copy elsewhere. The transcript audit is the real safeguard, so always pass every locked or forbidden path to it.
+4. After each role, audit its transcript:
+   ```bash
+   python3 ~/.claude/skills/rl-coding-task/scripts/isolation_check.py --transcript <jsonl> \
+     --allow <role dir> --allow ~/.claude/skills --forbid <each answer path> --canary <each token> \
+     --outputs <role outputs> [--no-network]
+   ```
+   `--no-network` only for solver probes. A `chmod`, `cat` or `ls` on a forbidden path, git history commands, and canaries seen in tool results or written to outputs are all VIOLATIONS. `ISOLATION: VIOLATED` means discard that role's output and rerun it with a fresh agent. Subagent transcripts live at `~/.claude/projects/<project>/<session>/subagents/agent-<id>.jsonl`.
+
+The shipped environment needs the same care: no `.git` history, no `.orig`/`.rej`/backup files, no canary or answer in `repo/` (`verify_task.sh` checks these).
+
+## Determinism rules
+
+No network in code under test; freeze or anchor time (anchored clock: fixed start plus elapsed, never fully frozen, which breaks ORDER BY created_at); seed randomness; no dependence on test order, ports in use, locale or timezone (`TZ=UTC`; `mutation_bar.py` sets it). Pin dependencies. Oracle passes 3 runs in a row. Browser tests run twice with the same result.
+
+## Pre-submit checklist (reviewer runs every item, with evidence)
+
+1. Matches the target template, category and required fields exactly; its validator passes if one exists.
+2. Ticket is clear, user-facing, single interpretation, and leaks nothing: no file or function names, no cause, no diff, no test names, no hidden values beyond what the ticket's own example states. Grep test and stranger test done (building-coding-tasks "Ticket writing").
+3. Tests check only what the ticket states, and every acceptance criterion is tested.
+4. Agent-visible repo has no hidden tests, solution, canaries or hints (comments, TODOs, git history, branch names, backup files, `.orig`/`.rej`).
+5. Null attempt (empty change) fails F2P on an assertion, not an import or boot error.
+6. Oracle passes F2P and P2P, 3 runs in a row from a clean copy (`verify_task.sh RUNS=3`).
+7. P2P is green on the broken repo.
+8. Hacks fail: deleted tests, skip-all config, edited test script, hardcoded outputs, constant stub, plus `verify_task.sh` auto hacks.
+9. `mutation_bar.py` passes: at least one wrong fix per acceptance criterion and every wrong fix killed, every alt fix and the solver's fix pass, at least 80% of auto mutants killed after justified equivalents.
+10. Deterministic: no network, time, randomness, order or locale dependence.
+11. Not trivially marked: no greppable marker, crash with stack trace or type error. The probe result is recorded on BOARD.md.
+12. Diverse from the other tasks shipped (different feature area or bug type).
+13. Isolation audits CLEAN for test author, wrong-fix author and solver.
+
+## Scripts (Python scripts take `--help`; `verify_task.sh` documents its env vars in its header)
+
+- `scripts/verify_task.sh` (env vars): `TASK_DIR`, `F2P_CMD`, `P2P_CMD` required; `SETUP_CMD`, `RUNS` (default 3), `F2P_PASS_REGEX` (require a pass-count line, so an early `exit 0` cannot pass), `PROTECTED`, `AUTO_HACKS` (default 1), `MIN_HACKS` (default 4). Checks leaks, null, oracle x RUNS and scope, hacks, hidden-test tampering. Ends `VERIFY: PASS` or `VERIFY: FAIL (n problems)`.
+  `TASK_DIR=<task> F2P_CMD='...' P2P_CMD='...' SETUP_CMD='...' F2P_PASS_REGEX='...' RUNS=3 nice -n 15 bash ~/.claude/skills/rl-coding-task/scripts/verify_task.sh`
+- `scripts/mutation_bar.py --task-dir <task> --test-cmd '<F2P>' [--p2p-cmd] [--setup-cmd] [--tests-dir hidden_tests] [--wrong-dir wrong_fixes] [--alt-dir alt_fixes] [--syntax-cmd '<cmd with {file}>'] [--equivalent FILE] [--max-auto 40] [--min-auto-score 0.8] [--mutate-context 25] [--no-auto] [--jobs 1] [--slot-base N] [--infra-exit-codes 3] [--timeout 600] [--json-out FILE]`. `{slot}` in commands and `MB_SLOT` in the env pick ports; give concurrent runs disjoint `--slot-base`. Harness exit 3 = UNGRADED, never a kill. Ends `MUTATION BAR: PASS`.
+- `scripts/isolation_check.py --transcript <jsonl> [--allow DIR]... [--forbid DIR]... [--canary TOKEN]... [--outputs DIR]... [--no-network] [--allow-history] [--upstream-hint owner/repo] [--ignore-path PREFIX]...`. Ends `ISOLATION: CLEAN` or `ISOLATION: VIOLATED`.
+
+These are local pre-checks; the real grader is the final judge.
+
+## On a rejection
+
+Record the reason on BOARD.md, tell every running worker in this pipeline, and add the cause to the checklist for later tasks. If the reason is difficulty, switch to the hardening levers in the playbook "Difficulty".

@@ -1,6 +1,6 @@
 # RL Environments for Computer-Use and Coding Agents: Frontier Review
 
-Prepared Nov 14 2026 for the Frist hackathon (Sun Nov 15, 10am to 9pm). Format: finish clone tickets (10 pts/ticket, 100/clone), then author tasks on a finished clone: cross-app computer-use tasks (100 pts accepted) or coding RL tasks in Frist's categories (500 pts accepted). Bracketed numbers point to the source list.
+Prepared Nov 14 2026 as background for building coding and computer-use RL tasks on app clones. Bracketed numbers point to the source list.
 
 ## 1. Landmark environments
 
@@ -44,7 +44,7 @@ Prepared Nov 14 2026 for the Frist hackathon (Sun Nov 15, 10am to 9pm). Format: 
 - BenchJack found 219 flaws in 10 benchmarks; 9 of 10 hackable at 90-100%; WebArena and OSWorld patched to 0% in three rounds [24].
 - Fixes: isolate agent from evaluator, keep answers secret, no `eval()` on agent output, sanitize judge inputs, adversarially test before release [23][24]; accept all valid solutions and audit checkers against alternatives [26].
 
-## 3. Build checklist for the event (tailored)
+## 3. Build checklist
 
 **What gets a task accepted** (synthesized from [24][25][26]):
 1. **Clear prompt, one right end state.** Underspecified tasks are a top source of broken tasks [26]. Name exact entities ("Close ticket ENG-142 and post its link in #oncall").
@@ -57,11 +57,11 @@ Prepared Nov 14 2026 for the Frist hackathon (Sun Nov 15, 10am to 9pm). Format: 
 8. **Oracle solution.** Ship a scripted solve (BrowserGym's `cheat()` pattern) that scores 1 [27].
 9. **Not trivial.** Multi-step, ideally needs info from one app to act in another [9][13].
 
-**Cross-app computer-use patterns (100 pts).** Shared seeded world across clones [13]; "read in app A, write in app B" tasks; checkpointed subgoals for partial credit [9]; parameterize templates to mint variants fast [6][7].
+**Cross-app computer-use patterns.** Shared seeded world across clones [13]; "read in app A, write in app B" tasks; checkpointed subgoals for partial credit [9]; parameterize templates to mint variants fast [6][7].
 
-**Coding RL patterns (500 pts, prioritize).** On the clone repo: inject a bug (SWE-smith's four methods) [19]; confirm F2P tests fail before and pass with the reference fix, and P2P tests stay green [16][19]; write issue text from failing test output without leaking the diff [19]; hide tests from the agent and block `conftest.py`/test edits [23]; re-run tests from a clean copy of the test files.
+**Coding RL patterns.** On the clone repo: inject a bug (SWE-smith's four methods) [19]; confirm F2P tests fail before and pass with the reference fix, and P2P tests stay green [16][19]; write issue text from failing test output without leaking the diff [19]; hide tests from the agent and block `conftest.py`/test edits [23]; re-run tests from a clean copy of the test files.
 
-**Demo to judges.** Show reset, an oracle run scoring 1, a null run scoring 0, an attempted hack scoring 0, and a real model attempt with trace (HUD traces every reward [28]).
+**Demo to reviewers.** Show reset, an oracle run scoring 1, a null run scoring 0, an attempted hack scoring 0, and a real model attempt with trace (HUD traces every reward [28]).
 
 ## 4. Frameworks
 
